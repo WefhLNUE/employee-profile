@@ -1,0 +1,35 @@
+export enum ApprovalPriority {
+  LOW = 'Low',
+  MEDIUM = 'Medium',
+  HIGH = 'High',
+}
+export enum HRManagerAction {
+  PROFILE_EDIT = 'profile_edit',
+  CORRECTION_APPROVAL = 'correction_approval',
+  CORRECTION_REJECTION = 'correction_rejection',
+  ROLE_ASSIGNMENT = 'role_assignment',
+  ROLE_REMOVAL = 'role_removal',
+  EMPLOYEE_DEACTIVATION = 'employee_deactivation',
+  EMPLOYEE_ACTIVATION = 'employee_activation',
+  PERMISSION_GRANT = 'permission_grant',
+  PERMISSION_REVOKE = 'permission_revoke',
+  PROFILE_CREATION = 'profile_creation',
+  PROFILE_DELETION = 'profile_deletion',
+  WORKFLOW_CONFIG = 'workflow_config',
+  SYSTEM_SETTINGS_UPDATE = 'system_settings_update',
+}
+export enum HRManagerPermission {
+  VIEW_EMPLOYEE_PROFILES = 'view_employee_profiles',
+  EDIT_EMPLOYEE_PROFILES = 'edit_employee_profiles',
+  APPROVE_CORRECTION_REQUESTS = 'approve_correction_requests',
+  DEACTIVATE_EMPLOYEES = 'deactivate_employees',
+  ACTIVATE_EMPLOYEES = 'activate_employees',
+  ASSIGN_ROLES = 'assign_roles',
+  SEARCH_EMPLOYEES = 'search_employees',
+  VIEW_AUDIT_LOGS = 'view_audit_logs',
+  MANAGE_PERMISSIONS = 'manage_permissions',
+  CONFIGURE_WORKFLOW_RULES = 'configure_workflow_rules',
+  MANAGE_SYSTEM_SETTINGS = 'manage_system_settings',
+  EXPORT_EMPLOYEE_DATA = 'export_employee_data',
+  BULK_OPERATIONS = 'bulk_operations',
+}
