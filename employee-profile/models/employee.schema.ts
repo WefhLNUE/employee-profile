@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, HydratedDocument } from 'mongoose';
 import { EmploymentType, CorrectionStatus, Role } from '../enums/employee.enum';
-import { BasePerson } from 'person.schema';
+import { BasePerson } from './person.schema';
 
 export type EmployeeDocument = HydratedDocument<Employee>
 

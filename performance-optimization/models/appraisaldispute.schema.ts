@@ -1,39 +1,67 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type AppraisalDisputeDocument = HydratedDocument<AppraisalDispute>;
+
+export enum DisputeStatus {
+  PENDING = 'Pending',
+  UNDER_REVIEW = 'Under Review',
+  RESOLVED = 'Resolved',
+  REJECTED = 'Rejected',
+}
 
 @Schema({ timestamps: true })
 export class AppraisalDispute {
   @Prop({ required: true, unique: true })
-  dispute_id: string;            // pk
+  disputeId: string; // pk
+
+  @Prop({ type: Types.ObjectId, ref: 'Appraisal', required: true })
+  appraisalId: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
+  employeeId: Types.ObjectId;
 
   @Prop({ required: true })
-  appraisal_id: string;
-
-  @Prop({ required: true })
-  employee_id: string;
-
-  @Prop({ required: true })
-  dispute_reason: string;
+  disputeReason: string;
 
   @Prop({ required: true, default: Date.now })
-  submitted_at: Date;          // timestamp (ISO string)
+  submittedAt: Date;
 
-  @Prop({ default: null })
-  reviewed_by: string | null;    // nullable if not reviewed yet
+  @Prop({
+    type: String,
+    enum: Object.values(DisputeStatus),
+    default: DisputeStatus.PENDING,
+  })
+  status: DisputeStatus;
 
-  @Prop({ default: null })
-  resolution: string | null;
+  @Prop({ type: Types.ObjectId, ref: 'Employee' })
+  reviewedBy?: Types.ObjectId; // HR Manager who reviews
 
-  @Prop({ default: null })
-  resolution_comments: string | null;
+  @Prop()
+  resolution?: string;
 
-  @Prop({ default: null })
-  resolved_at: Date | null;    // timestamp or null
+  @Prop()
+  resolutionComments?: string;
 
-  @Prop({ required: true })
-  status: string;
+  @Prop()
+  resolvedAt?: Date;
+
+  // Original vs adjusted rating
+  @Prop()
+  originalRating?: number;
+
+  @Prop()
+  adjustedRating?: number;
+
+  @Prop()
+  adjustmentJustification?: string;
 }
 
 export const AppraisalDisputeSchema = SchemaFactory.createForClass(AppraisalDispute);
+
+// Indexes for performance
+AppraisalDisputeSchema.index({ disputeId: 1 });
+AppraisalDisputeSchema.index({ appraisalId: 1 });
+AppraisalDisputeSchema.index({ employeeId: 1 });
+AppraisalDisputeSchema.index({ status: 1 });
+AppraisalDisputeSchema.index({ submittedAt: -1 });

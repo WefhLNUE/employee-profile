@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, HydratedDocument, Schema as MongooseSchema } from 'mongoose';
 import { Role } from '../enums/employee.enum';
 import { ApprovalPriority, HRManagerAction, HRManagerPermission } from '../enums/hrmanager.enum';
-import { BasePerson } from 'person.schema';
+import { BasePerson } from './person.schema';
 
 export type HRManagerDocument = HydratedDocument<HRManager>;
 
