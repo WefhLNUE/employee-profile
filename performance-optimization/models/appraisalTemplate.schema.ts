@@ -15,14 +15,28 @@ export class AppraisalTemplate {
       {
         label: { type: String, required: true }, // e.g., Excellent, Satisfactory
         value: { type: Number, required: true }, // e.g., 5,4,3,2,1
-        criteria: { type: String, required: true }, // description of the rating
+        criteria: [
+          {
+            criteriaName: { type: String, required: true },
+            criteriaWeight: { type: Number, required: true },
+            description: String,
+            minScore: Number,
+            maxScore: Number,
+          },
+        ],
       },
     ],
   })
   ratingScale: {
     label: string;
     value: number;
-    criteria: string;
+    criteria: {
+      criteriaName: string;
+      criteriaWeight: number;
+      description?: string;
+      minScore?: number;
+      maxScore?: number;
+    }[];
   }[];
 
   @Prop({ type: Types.ObjectId, ref: 'HRManager', required: true })

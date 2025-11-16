@@ -1,17 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
+import { DisputeStatus } from '../enums/dispute.enum';
 
 export type AppraisalDisputeDocument = HydratedDocument<AppraisalDispute>;
 
-export enum DisputeStatus {
-  PENDING = 'Pending',
-  UNDER_REVIEW = 'Under Review',
-  RESOLVED = 'Resolved',
-  REJECTED = 'Rejected',
-}
-
 @Schema({ timestamps: true })
 export class AppraisalDispute {
+
+  //filling info about the dispute
   @Prop({ required: true, unique: true })
   disputeId: string; // pk
 
@@ -19,7 +15,7 @@ export class AppraisalDispute {
   appraisalId: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
-  employeeId: Types.ObjectId;
+  raisedBy: Types.ObjectId;
 
   @Prop({ required: true })
   disputeReason: string;
@@ -34,8 +30,13 @@ export class AppraisalDispute {
   })
   status: DisputeStatus;
 
+  //resolution info about the dispute
+
   @Prop({ type: Types.ObjectId, ref: 'Employee' })
   reviewedBy?: Types.ObjectId; // HR Manager who reviews
+
+  @Prop({ type: Types.ObjectId, ref: 'HR' })
+  flaggedBy?: Types.ObjectId; // optional HR flag
 
   @Prop()
   resolution?: string;
