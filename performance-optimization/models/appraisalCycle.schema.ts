@@ -1,11 +1,15 @@
-import { Status } from '../../enums/employee.enum.ts';
-import { Prop, Schema } from '@nestjs/mongoose';
+import { CorrectionStatus } from '../../employee-profile/enums/employee.enum';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
+import { AppraisalCycleType } from '../enums/appraisalCycle.enum';
 
 @Schema({ timestamps: true })
 export class AppraisalCycle {
+  @Prop({ required: true, unique: true })
+  cycleId: string;
+
   @Prop({ required: true })
-  name: string;
+  cycleName: string;
 
   @Prop({ required: true })
   startDate: Date;
@@ -15,28 +19,28 @@ export class AppraisalCycle {
 
   @Prop({
     type: String,
-    enum: Status,   // <-- Use your global enum here
-    default: Status.PENDING,
+    enum: CorrectionStatus,   // <-- Use your global enum here
+    default: CorrectionStatus.PENDING,
   })
-  status: Status;
+  status: CorrectionStatus;
 
   @Prop({ type: Types.ObjectId, ref: 'AppraisalTemplate', required: true })
   templateId: string;
 
-  @Prop({
-    type: [
-      {
-        employeeId: { type: String, required: true },
-        managerId: { type: String, required: true },
-      },
-    ],
-    default: [],
-  })
-  assignments: {
-    employeeId: string;
-    managerId: string;
-  }[];
+  @Prop({ required: true, enum: AppraisalCycleType })
+  cycle_type: AppraisalCycleType;
+
+  @Prop({ required: true })
+  createdBy: string;
+
+  @Prop({ required: true })
+  createdAt: Date;
+
+  @Prop({ required: true })
+  updatedAt: Date;
 
   @Prop({ default: false })
   publishedToEmployees: boolean;
 }
+
+export const AppraisalCycleSchema = SchemaFactory.createForClass(AppraisalCycle);

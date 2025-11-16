@@ -1,58 +1,37 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
+import { Timestamp } from 'rxjs';
 
 @Schema({ timestamps: true })
 export class AppraisalTemplate {
+  @Prop({required: true, unique: true})
+  templateId: string;
+
   @Prop({ required: true })
-  name: string; // e.g., "Annual General Appraisal", "Probation Template"
+  templateName: string; // e.g., "Annual General Appraisal", "Probation Template"
 
   @Prop({
     type: [
       {
         label: { type: String, required: true }, // e.g., Excellent, Satisfactory
         value: { type: Number, required: true }, // e.g., 5,4,3,2,1
-        description: { type: String },
+        criteria: { type: String, required: true }, // description of the rating
       },
     ],
   })
   ratingScale: {
     label: string;
     value: number;
-    description?: string;
+    criteria: string;
   }[];
 
-  @Prop({
-    type: [
-      {
-        sectionTitle: { type: String, required: true }, // e.g., "Job Knowledge", "Leadership"
-        weight: { type: Number, required: true }, // 0–100
-        questions: [
-          {
-            questionText: { type: String, required: true }, // “Rate communication skills”
-            weight: { type: Number, required: true },
-          },
-        ],
-      },
-    ],
-  })
-  sections: {
-    sectionTitle: string;
-    weight: number;
-    questions: {
-      questionText: string;
-      weight: number;
-    }[];
-  }[];
+  @Prop({ type: Types.ObjectId, ref: 'HRManager', required: true })
+  createdBy: string; // HRManager who created the template
 
-  @Prop({
-    type: [String],
-    default: [],
-  })
-  applicableDepartments: string[]; // OS dependency
+  @Prop({required: true})
+  updatedAt: Date;
 
-  @Prop({
-    type: [String],
-    default: [],
-  })
-  applicableJobGrades: string[]; // OS dependency
+  @Prop({required: true})
+  isActive: boolean;
 }
+export const AppraisalTemplateSchema = SchemaFactory.createForClass(AppraisalTemplate);

@@ -1,19 +1,32 @@
-import { Prop, Schema } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { AppraisalStatus } from 'src/enums/appraisal.enum';
-import { AppealStatus } from 'src/enums/appeal.enum';
+import { AppraisalStatus } from '../enums/appraisal.enum';
 
 
 @Schema({ timestamps: true })
 export class EmployeeAppraisal {
-  @Prop({ required: true })
-  employeeId: string;
-
-  @Prop({ required: true })
-  managerId: string;
-
   @Prop({ type: Types.ObjectId, ref: 'AppraisalCycle', required: true })
   cycleId: string;
+
+  @Prop({
+    type: [
+      {
+        employeeId: { type: String, required: true },
+        managerId: { type: String, required: true },
+      },
+    ],
+    default: [],
+  })
+  assignments: {
+    employeeId: string;
+    managerId: string;
+  }[];
+
+  // @Prop({ required: true })
+  // employeeId: string;
+
+  // @Prop({ required: true })
+  // managerId: string;
 
   @Prop({ type: Types.ObjectId, ref: 'AppraisalTemplate', required: true })
   templateId: string;
@@ -27,7 +40,10 @@ export class EmployeeAppraisal {
             questionText: { type: String, required: true },
             ratingValue: { type: Number, required: true },
             managerComment: { type: String },
-            examples: { type: String },
+            managerExamples: { type: String },
+            managerRecommendations: { type: String },
+            attendance_score: {type: Number},
+            punctuality_score: {type: Number},
           },
         ],
       },
@@ -39,9 +55,13 @@ export class EmployeeAppraisal {
       questionText: string;
       ratingValue: number;
       managerComment?: string;
-      examples?: string;
+      managerExamples?: string;
+      managerRecommendations?: string;
+      attendance_score?: number;
+      punctuality_score?: number;
     }[];
   }[];
+  //in backend will import from time management module and manager will se it then decide the rating
 
   @Prop()
   overallScore: number; // calculated
@@ -49,30 +69,24 @@ export class EmployeeAppraisal {
   @Prop()
   finalComment: string; // manager summary
 
- @Prop({
-  type: {
-    raised: { type: Boolean, default: false },
-    description: { type: String },
-    resolution: { type: String },
-    status: { type: String, enum: AppealStatus, default: AppealStatus.PENDING },
-  },
-})
- objection?: {
-  raised: boolean;
-  description?: string;
-  resolution?: string;
-  status: AppealStatus;
-};
+  @Prop({
+    required: true,
+    enum: AppraisalStatus,
+    default: AppraisalStatus.PENDING,
+  })
+  status: AppraisalStatus;
 
-
-@Prop({
-  type: String,
-  enum: AppraisalStatus,
-  default: AppraisalStatus.DRAFT,
-})
-appraisalStatus: AppraisalStatus;
-
+  @Prop()
+  createdAt: Date;
+  @Prop()
+  updatedAt: Date;
+  @Prop()
+  submittedAt: Date;
+  @Prop() 
+  publishedAt: Date;
 }
 
+export const EmployeeAppraisalSchema =
+  SchemaFactory.createForClass(EmployeeAppraisal);
 
 
