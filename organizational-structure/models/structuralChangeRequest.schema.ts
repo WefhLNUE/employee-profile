@@ -3,9 +3,17 @@ import { HydratedDocument, Types } from 'mongoose';
 
 @Schema()
 export class StructuralChangeRequest {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  requestedBy: Types.ObjectId;
+  // @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  // requestedBy: Types.ObjectId;
+  // //REQ-OSM-03: Manager submits.
+
+  @Prop({ required: true })
+  requestedById: string; // or Types.ObjectId
+
+  @Prop({ required: true, enum: ['HRManager', 'DepartmentManager'] })
+  requestedByType: 'HRManager' | 'DepartmentManager';
   //REQ-OSM-03: Manager submits.
+
 
   @Prop({ type: Types.ObjectId, ref: 'Position', required: true })
   targetPosition: Types.ObjectId;

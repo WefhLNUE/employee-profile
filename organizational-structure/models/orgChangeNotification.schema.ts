@@ -4,9 +4,15 @@ import { HydratedDocument, Types } from 'mongoose';
 
 @Schema()
 export class OrgNotification {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  recipient: Types.ObjectId;
-  // To whom the notification is sent.
+  // @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  // recipient: Types.ObjectId;
+  // // To whom the notification is sent.
+
+  @Prop({ required: true, unique: true })
+  recipientId: string; //
+
+  @Prop({ required: true, enum: ['HRManager', 'DepartmentManager'] })
+  recipientType: 'HRManager' | 'DepartmentManager'; //stakeholder??? mfish schema
 
   @Prop({ required: true })
   message: string;

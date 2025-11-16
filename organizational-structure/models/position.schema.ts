@@ -5,11 +5,11 @@ export type PositionDocument = HydratedDocument<Position>;
 
 @Schema({ timestamps: true })
 export class Position {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   title: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'Department', required: true })
-  departmentId: Types.ObjectId;
+  @Prop({ required: true })
+  departmentId: string;
 
   @Prop({ required: true, unique: true })
   code: string;

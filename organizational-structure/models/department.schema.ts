@@ -5,7 +5,7 @@ export type DepartmentDocument = HydratedDocument<Department>;
 
 @Schema({ timestamps: true })
 export class Department {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   departmentId: string;
 
   @Prop({ required: true })
@@ -24,8 +24,12 @@ export class Department {
   @Prop()
   description?: string;
 
-  @Prop({ type: [{ type: Types.ObjectId, ref: 'Position' }] })
-  positions?: Types.ObjectId[];
+  @Prop({ type: [Number] })
+  positions: number[]; //to store positionId that we created
+
+
+  // @Prop({ type: [{ type: Types.ObjectId, ref: 'Position' }] })
+  // positions?: Types.ObjectId[];
   //natural relation (many to many): each department contains many positions (Phase 1).
 }
 
