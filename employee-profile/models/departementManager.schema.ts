@@ -2,10 +2,10 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
 import { BasePerson } from '../models/person.schema';
 
-export type ManagerTeamViewDocument = HydratedDocument<ManagerTeamView>;
+export type DepartmentManagerDocument = HydratedDocument<DepartmentManager>;
 
 @Schema({ timestamps: true })
-export class ManagerTeamView extends BasePerson {
+export class DepartmentManager extends BasePerson {
 
   @Prop({ required: true, unique: true })
   managerId: string; // refers to Employee.employeeId is FK
@@ -63,4 +63,4 @@ export class ManagerTeamView extends BasePerson {
 
 }
 
-export const ManagerTeamViewSchema = SchemaFactory.createForClass(ManagerTeamView);
+export const DepartmentManagerSchema = SchemaFactory.createForClass(DepartmentManager);
