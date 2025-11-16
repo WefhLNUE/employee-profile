@@ -6,7 +6,7 @@ export type ManagerTeamViewDocument = HydratedDocument<ManagerTeamView>;
 @Schema({ timestamps: true })
 export class ManagerTeamView {
 
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   managerId: string; // refers to Employee.employeeId is FK
 
   @Prop({ required: true })
