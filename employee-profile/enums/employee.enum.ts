@@ -9,8 +9,16 @@ export enum CorrectionStatus {
   APPROVED = 'Approved',
   REJECTED = 'Rejected',
 }
-export enum Role {
-  EMPLOYEE = 'Employee',
-  MANAGER = 'Manager',
-  HR = 'HR',
+// export enum Role {
+//   EMPLOYEE = 'Employee',
+//   MANAGER = 'Manager',
+//   HR = 'HR',
+// }
+
+export enum EmploymentStatus {
+  ACTIVE = 'Active',
+  ON_LEAVE = 'On Leave',
+  SUSPENDED = 'Suspended',
+  RETIRED = 'Retired',
 }
+

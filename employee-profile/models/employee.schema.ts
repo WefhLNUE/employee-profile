@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, HydratedDocument } from 'mongoose';
-import { EmploymentType, CorrectionStatus, Role } from '../enums/employee.enum';
+import { Document, HydratedDocument, Types } from 'mongoose';
+import { EmploymentType, CorrectionStatus, EmploymentStatus } from '../enums/employee.enum';
 import { BasePerson } from './person.schema';
 
 export type EmployeeDocument = HydratedDocument<Employee>
@@ -45,6 +45,14 @@ export class Employee extends BasePerson {
   })
   employmentType: EmploymentType;
 
+    // Status (BR 3j)
+  @Prop({
+    type: String,
+    enum: Object.values(EmploymentStatus),
+    default: EmploymentStatus.ACTIVE,
+  })
+  status: EmploymentStatus;
+
   @Prop()
   hireDate?: Date;
 
@@ -52,36 +60,19 @@ export class Employee extends BasePerson {
   workReceivingDate?: Date; // For leave accrual calculations (BR requirement)
 
   // Manager relationship (BR 3d, 3e, BR 41b)
-  @Prop()
-  reportsTo?: string; // Manager employeeId
+  @Prop({ type: Types.ObjectId, ref: 'DepartmentManager' })
+  reportsTo?: Types.ObjectId;
 
-  // Status (BR 3j)
-  @Prop({ default: true })
-  isActive: boolean;
 
   @Prop()
   deactivatedAt?: Date;
 
   //Performance Data (import from Performance module) - BR 16
   @Prop({
-    type: [
-      {
-        appraisalId: String,
-        date: Date,
-        type: String,
-        score: Number,
-        cycleId: String,
-      },
-    ],
+    type: [{ type: Types.ObjectId, ref: 'EmployeeAppraisal' }],
     default: [],
   })
-  appraisalHistory: {
-    appraisalId: string;
-    date: Date;
-    type: string;
-    score: number;
-    cycleId: string;
-  }[];
+  appraisalHistory: Types.ObjectId[];
 
   //(??)
   //correction requests (US-E6-02)
@@ -98,7 +89,7 @@ export class Employee extends BasePerson {
       },
       requestedAt: { type: Date, default: Date.now },
       reviewedAt: Date,
-      reviewedBy: String, // HR Manager who reviewed
+      reviewedBy: { type: Types.ObjectId, ref: 'HRManager' },
       rejectionReason: String, // If rejected
     },
   ],
@@ -111,7 +102,7 @@ pendingCorrectionRequests: {
   status: CorrectionStatus;
   requestedAt: Date;
   reviewedAt?: Date;
-  reviewedBy?: string;
+  reviewedBy?: Types.ObjectId;
   rejectionReason?: string;
 }[];
 
@@ -138,13 +129,14 @@ pendingCorrectionRequests: {
     timestamp: Date;
   }[];
 
-  //role (BR 20a)
-  @Prop({
-  type: String,
-  enum: Object.values(Role),
-  default: Role.EMPLOYEE,
-  })
-  role: Role;
+  //authentication
+  // //role (BR 20a)
+  // @Prop({
+  // type: String,
+  // enum: Object.values(Role),
+  // default: Role.EMPLOYEE,
+  // })
+  // role: Role;
 }
 
 export const EmployeeSchema = SchemaFactory.createForClass(Employee);
