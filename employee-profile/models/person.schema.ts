@@ -1,6 +1,6 @@
 import { Prop, Schema } from '@nestjs/mongoose';
 
-@Schema()
+@Schema({ _id: false })
 export class BasePerson {
 
   @Prop({ required: true })

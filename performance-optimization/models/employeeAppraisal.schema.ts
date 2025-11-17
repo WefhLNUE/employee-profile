@@ -5,31 +5,20 @@ import { AppraisalStatus } from '../enums/appraisal.enum';
 
 @Schema({ timestamps: true })
 export class EmployeeAppraisal {
+  @Prop({ required: true, unique: true })
+  appraisalId: string; // Unique identifier
+
   @Prop({ type: Types.ObjectId, ref: 'AppraisalCycle', required: true })
-  cycleId: string;
+  cycleId: Types.ObjectId;
 
-  @Prop({
-    type: [
-      {
-        employeeId: { type: String, required: true },
-        managerId: { type: String, required: true },
-      },
-    ],
-    default: [],
-  })
-  assignments: {
-    employeeId: string;
-    managerId: string;
-  }[];
+  @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
+  employeeId: Types.ObjectId;
 
-  // @Prop({ required: true })
-  // employeeId: string;
-
-  // @Prop({ required: true })
-  // managerId: string;
+  @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
+  reviewedBy: Types.ObjectId; // Manager who reviews
 
   @Prop({ type: Types.ObjectId, ref: 'AppraisalTemplate', required: true })
-  templateId: string;
+  templateId: Types.ObjectId;
 
   @Prop({
     type: [
@@ -42,8 +31,8 @@ export class EmployeeAppraisal {
             managerComment: { type: String },
             managerExamples: { type: String },
             managerRecommendations: { type: String },
-            attendance_score: {type: Number},
-            punctuality_score: {type: Number},
+            attendanceScore: {type: Number}, // From Time Management module
+            punctualityScore: {type: Number}, // From Time Management module
           },
         ],
       },
@@ -57,33 +46,56 @@ export class EmployeeAppraisal {
       managerComment?: string;
       managerExamples?: string;
       managerRecommendations?: string;
-      attendance_score?: number;
-      punctuality_score?: number;
+      attendanceScore?: number;
+      punctualityScore?: number;
     }[];
   }[];
   //in backend will import from time management module and manager will se it then decide the rating
 
   @Prop()
-  overallScore: number; // calculated
+  overallRating?: number; // Calculated overall rating
 
   @Prop()
-  finalComment: string; // manager summary
+  overallComments?: string; // Manager summary
+
+  @Prop({
+    type: [
+      {
+        recommendation: String,
+        priority: String, // HIGH, MEDIUM, LOW
+        targetDate: Date,
+      },
+    ],
+    default: [],
+  })
+  developmentRecommendations: {
+    recommendation: string;
+    priority: string;
+    targetDate?: Date;
+  }[];
 
   @Prop({
     required: true,
     enum: AppraisalStatus,
-    default: AppraisalStatus.PENDING,
+    default: AppraisalStatus.DRAFT,
   })
   status: AppraisalStatus;
 
   @Prop()
-  createdAt: Date;
+  submittedAt?: Date;
+
   @Prop()
-  updatedAt: Date;
+  publishedAt?: Date;
+
   @Prop()
-  submittedAt: Date;
-  @Prop() 
-  publishedAt: Date;
+  acknowledgedAt?: Date; // When employee acknowledged the results
+
+  // Dispute information
+  @Prop({ type: Types.ObjectId, ref: 'AppraisalDispute' })
+  disputeId?: Types.ObjectId;
+
+  @Prop({ default: false })
+  hasDispute: boolean;
 }
 
 export const EmployeeAppraisalSchema =

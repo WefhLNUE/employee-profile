@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
-import { Timestamp } from 'rxjs';
 
 @Schema({ timestamps: true })
 export class AppraisalTemplate {
@@ -9,6 +8,9 @@ export class AppraisalTemplate {
 
   @Prop({ required: true })
   templateName: string; // e.g., "Annual General Appraisal", "Probation Template"
+
+  @Prop()
+  description?: string;
 
   @Prop({
     type: [
@@ -39,13 +41,17 @@ export class AppraisalTemplate {
     }[];
   }[];
 
+  // Departments/positions this template applies to
+  @Prop({ type: [String], default: [] })
+  assignedDepartments?: string[]; // Department IDs
+
+  @Prop({ type: [String], default: [] })
+  assignedPositions?: string[]; // Position IDs
+
   @Prop({ type: Types.ObjectId, ref: 'HRManager', required: true })
-  createdBy: string; // HRManager who created the template
+  createdBy: Types.ObjectId; // HRManager who created the template
 
-  @Prop({required: true})
-  updatedAt: Date;
-
-  @Prop({required: true})
+  @Prop({ default: true })
   isActive: boolean;
 }
 export const AppraisalTemplateSchema = SchemaFactory.createForClass(AppraisalTemplate);

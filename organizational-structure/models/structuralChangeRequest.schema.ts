@@ -35,16 +35,17 @@ export class StructuralChangeRequest {
   status: string;
   //REQ-OSM-04: Admin reviews and approves.
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
-  reviewedBy?: Types.ObjectId;
-  //Who approved/rejected it (System Admin).
+  @Prop()
+  reviewedById?: string; // System Admin who reviewed (employeeId or hrManagerId)
 
   @Prop()
   reviewedAt?: Date;
 
   @Prop()
-  reason?: string;
-  //optional comment from manager or admin.
+  reason?: string; // Optional comment from manager
+
+  @Prop()
+  rejectionReason?: string; // Reason if rejected
 
   @Prop({ default: Date.now })
   createdAt: Date;

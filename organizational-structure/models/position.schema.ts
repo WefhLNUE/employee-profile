@@ -23,6 +23,12 @@ export class Position {
   @Prop({ required: true })
   payGrade: string;
 
+  @Prop()
+  description?: string;
+
+  @Prop()
+  currentEmployee?: string; // Current employee in this position (employeeId)
+
   @Prop({ default: true })
   isActive: boolean;
 

@@ -35,8 +35,8 @@ export class AppraisalDispute {
   @Prop({ type: Types.ObjectId, ref: 'Employee' })
   reviewedBy?: Types.ObjectId; // HR Manager who reviews
 
-  @Prop({ type: Types.ObjectId, ref: 'HR' })
-  flaggedBy?: Types.ObjectId; // optional HR flag
+  @Prop({ type: Types.ObjectId, ref: 'HRManager' })
+  flaggedBy?: Types.ObjectId; // Optional HR flag
 
   @Prop()
   resolution?: string;
@@ -63,6 +63,6 @@ export const AppraisalDisputeSchema = SchemaFactory.createForClass(AppraisalDisp
 // Indexes for performance
 AppraisalDisputeSchema.index({ disputeId: 1 });
 AppraisalDisputeSchema.index({ appraisalId: 1 });
-AppraisalDisputeSchema.index({ employeeId: 1 });
+AppraisalDisputeSchema.index({ raisedBy: 1 }); // Fixed: was employeeId, now raisedBy
 AppraisalDisputeSchema.index({ status: 1 });
 AppraisalDisputeSchema.index({ submittedAt: -1 });

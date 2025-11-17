@@ -17,12 +17,18 @@ export class Department {
   @Prop({ default: true })
   isActive: boolean;
 
-  // @Prop()
-  // deactivatedAt?: Date;
-  // //phase 3: "delimited — closed as of a certain date".
+  @Prop()
+  deactivatedAt?: Date; // BR 12, BR 37: "delimited — closed as of a certain date"
 
   @Prop()
   description?: string;
+
+  // Hierarchical structure
+  @Prop()
+  parentDepartment?: string; // Parent department ID
+
+  @Prop()
+  departmentHead?: string; // Department head employeeId
 
   @Prop({ type: [Number] })
   positions: number[]; //to store positionId that we created

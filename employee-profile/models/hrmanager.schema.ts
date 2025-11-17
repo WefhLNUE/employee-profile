@@ -24,8 +24,7 @@ export class HRManager extends BasePerson{
   @Prop({ required: true, unique: true })
   hrManagerId: string;
 
-  @Prop({ required: true, unique: true, match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ })
-  email: string;
+  // Note: emailOfficial is inherited from BasePerson, no need for duplicate email field
 
   // Role & Permissions (US-E7-05)
   @Prop({
