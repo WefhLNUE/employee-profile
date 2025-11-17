@@ -26,8 +26,8 @@ export class Position {
   @Prop()
   description?: string;
 
-  @Prop()
-  currentEmployee?: string; // Current employee in this position (employeeId)
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Employee' }], default: [] })
+  currentEmployees?: Types.ObjectId[]; // Current employee in this position (employeeId)
 
   @Prop({ default: true })
   isActive: boolean;

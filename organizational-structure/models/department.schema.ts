@@ -27,8 +27,8 @@ export class Department {
   @Prop()
   parentDepartment?: string; // Parent department ID
 
-  @Prop()
-  departmentHead?: string; // Department head employeeId
+ @Prop({ type: Types.ObjectId, ref: 'DepartmentManager' })
+  departmentHead?: Types.ObjectId;
 
   @Prop({ type: [Number] })
   positions: number[]; //to store positionId that we created

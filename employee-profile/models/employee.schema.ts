@@ -51,10 +51,13 @@ export class Employee extends BasePerson {
     enum: Object.values(EmploymentStatus),
     default: EmploymentStatus.ACTIVE,
   })
-  status: EmploymentStatus;
+  currentStatus: EmploymentStatus;
 
   @Prop()
   hireDate?: Date;
+
+  @Prop()
+  contractType?: string; // e.g., Permanent, Temporary, Contractual
 
   @Prop()
   workReceivingDate?: Date; // For leave accrual calculations (BR requirement)
