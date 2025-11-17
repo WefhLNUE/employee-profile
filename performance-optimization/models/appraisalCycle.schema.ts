@@ -60,6 +60,9 @@ export class AppraisalCycle {
 
   @Prop()
   archivedAt?: Date;
+
+  @Prop()
+  updatedAt?: Date;
 }
 
 export const AppraisalCycleSchema = SchemaFactory.createForClass(AppraisalCycle);

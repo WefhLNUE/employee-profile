@@ -31,11 +31,11 @@ export class Employee extends BasePerson {
   }[];
 
   //job and department (Org Structure input)
-  @Prop()
-  department?: string; //import from rom Org Structure module
+  @Prop({ type: Types.ObjectId, ref: 'Department' })
+  department?: Types.ObjectId; //import from rom Org Structure module
 
-  @Prop()
-  position?: string; //import from org Structure module
+  @Prop({ type: Types.ObjectId, ref: 'Position' })
+  position?: Types.ObjectId; //import from org Structure module
 
   //full time/part time/...
   @Prop({
@@ -58,6 +58,12 @@ export class Employee extends BasePerson {
 
   @Prop()
   contractType?: string; // e.g., Permanent, Temporary, Contractual
+
+  @Prop()
+  contractStartDate?: Date;
+
+  @Prop()
+  contractEndDate?: Date;
 
   @Prop()
   workReceivingDate?: Date; // For leave accrual calculations (BR requirement)

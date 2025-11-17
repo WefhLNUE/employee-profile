@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 import { BasePerson } from '../models/person.schema';
 
 export type DepartmentManagerDocument = HydratedDocument<DepartmentManager>;
@@ -10,8 +10,8 @@ export class DepartmentManager extends BasePerson {
   @Prop({ required: true, unique: true })
   managerId: string; // refers to Employee.employeeId is FK
 
-  @Prop({ required: true })
-  managerPosition: string; // from Org Structure
+  @Prop({ type: Types.ObjectId, ref: 'Position', required: true })
+  managerPosition: Types.ObjectId;
 
   @Prop({ required: true })
   managerDepartment: string;

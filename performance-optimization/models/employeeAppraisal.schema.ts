@@ -14,7 +14,7 @@ export class EmployeeAppraisal {
   @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
   employeeId: Types.ObjectId;
 
-  @Prop({ type: Types.ObjectId, ref: 'Employee', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'DepartmentManager', required: true })
   reviewedBy: Types.ObjectId; // Manager who reviews
 
   @Prop({ type: Types.ObjectId, ref: 'AppraisalTemplate', required: true })
