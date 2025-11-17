@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, HydratedDocument, Schema as MongooseSchema } from 'mongoose';
-import { Role } from '../enums/employee.enum';
+//import { Role } from '../enums/employee.enum';
 import { ApprovalPriority, HRManagerAction, HRManagerPermission } from '../enums/hrmanager.enum';
 import { BasePerson } from './person.schema';
 
@@ -26,14 +26,15 @@ export class HRManager extends BasePerson{
 
   // Note: emailOfficial is inherited from BasePerson, no need for duplicate email field
 
-  // Role & Permissions (US-E7-05)
-  @Prop({
-    type: String,
-    enum: Object.values(Role),
-    default: Role.HR,
-    required: true,
-  })
-  role: Role;
+  //authentication
+  // // Role & Permissions (US-E7-05)
+  // @Prop({
+  //   type: String,
+  //   enum: Object.values(Role),
+  //   default: Role.HR,
+  //   required: true,
+  // })
+  // role: Role;
 
   //Status
   @Prop({ default: true }) isActive: boolean;
