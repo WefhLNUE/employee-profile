@@ -96,8 +96,8 @@ async function main() {
     templateId: template._id,
     cycleType: 'annual',
     departments: [],
-    employees: [employee.employeeId],
-    createdBy: hr._id.toString(),
+    employees: [employee._id],
+    createdBy: hr._id,
     isPublished: false,
   });
 
