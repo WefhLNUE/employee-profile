@@ -39,15 +39,14 @@ export class AppraisalCycle {
   @Prop({ required: true, enum: AppraisalCycleType })
   cycleType: AppraisalCycleType;
 
-  // Departments and employees included in this cycle
-  @Prop({ type: [String], default: [] })
-  departments?: string[]; // Department IDs
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Department' }], default: [] })
+  departments?: Types.ObjectId[];
 
-  @Prop({ type: [String], default: [] })
-  employees?: string[]; // Employee IDs
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Employee' }], default: [] })
+  employees?: Types.ObjectId[];
 
-  @Prop({ required: true })
-  createdBy: string; // HR Manager or HR Employee ID
+  @Prop({ type: Types.ObjectId, ref: 'HRManager', required: true })
+  createdBy: Types.ObjectId; // HR Manager or HR Employee ID
 
   @Prop({ default: false })
   isPublished: boolean;

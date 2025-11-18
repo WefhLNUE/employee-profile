@@ -32,7 +32,7 @@ export class AppraisalDispute {
 
   //resolution info about the dispute
 
-  @Prop({ type: Types.ObjectId, ref: 'Employee' })
+  @Prop({ type: Types.ObjectId, ref: 'HRManager' })
   reviewedBy?: Types.ObjectId; // HR Manager who reviews
 
   @Prop({ type: Types.ObjectId, ref: 'HRManager' })
