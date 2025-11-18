@@ -15,7 +15,7 @@ import mongooseModule from 'mongoose';
 
 async function main() {
   await mongoose.connect(
-    'mongodb+srv://kanzy:UKNASQYpMP8fhSfS@hrcuster.fqiw4vw.mongodb.net/yourDatabaseName?retryWrites=true&w=majority'
+    'mongodb+srv://kanzy:UKNASQYpMP8fhSfS@hrcuster.fqiw4vw.mongodb.net/test?retryWrites=true&w=majority'
   );
   console.log('Connected to MongoDB');
 
