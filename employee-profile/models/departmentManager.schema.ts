@@ -13,8 +13,9 @@ export class DepartmentManager extends BasePerson {
   @Prop({ type: Types.ObjectId, ref: 'Position', required: true })
   managerPosition: Types.ObjectId;
 
-  @Prop({ required: true })
-  managerDepartment: string;
+  @Prop({ type: Types.ObjectId, ref: 'Department', required: true })
+  managerDepartment: Types.ObjectId;
+
 
   teamMembers: {
     employeeId: string;

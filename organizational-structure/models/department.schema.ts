@@ -24,14 +24,14 @@ export class Department {
   description?: string;
 
   // Hierarchical structure
-  @Prop()
-  parentDepartment?: string; // Parent department ID
+  @Prop({ type: Types.ObjectId, ref: 'Department', required: false })
+  parentDepartment?: Types.ObjectId; // Parent department ID
 
  @Prop({ type: Types.ObjectId, ref: 'DepartmentManager' })
   departmentHead?: Types.ObjectId;
 
-  @Prop({ type: [Number] })
-  positions: number[]; //to store positionId that we created
+  @Prop({ type: [{ type: Types.ObjectId, ref: 'Position' }], default: [] })
+  positions: Types.ObjectId[]; //to store positionId that we created
 
 
   // @Prop({ type: [{ type: Types.ObjectId, ref: 'Position' }] })

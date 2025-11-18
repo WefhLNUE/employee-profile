@@ -8,8 +8,9 @@ export class Position {
   @Prop({ required: true, unique: true })
   title: string;
 
-  @Prop({ required: true })
-  departmentId: string;
+  @Prop({ type: Types.ObjectId, ref: 'Department', required: true })
+  departmentId: Types.ObjectId;
+
 
   @Prop({ required: true, unique: true })
   code: string;

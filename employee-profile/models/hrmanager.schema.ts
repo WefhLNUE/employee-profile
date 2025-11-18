@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, HydratedDocument, Schema as MongooseSchema } from 'mongoose';
+import { Document, HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 //import { Role } from '../enums/employee.enum';
 import { ApprovalPriority, HRManagerAction, HRManagerPermission } from '../enums/hrmanager.enum';
 import { BasePerson } from './person.schema';
@@ -56,10 +56,10 @@ export class HRManager extends BasePerson{
 
   // Department Assignment (if HR Manager is assigned to specific departments)
   @Prop({
-    type: [String],
+    type: [{ type: Types.ObjectId, ref: 'Department' }],
     default: [],
   })
-  assignedDepartments?: string[]; // Department IDs from Org Structure module
+  assignedDepartments?: Types.ObjectId[]; // Department IDs from Org Structure module
 
   @Prop()
   lastLoginAt?: Date;
