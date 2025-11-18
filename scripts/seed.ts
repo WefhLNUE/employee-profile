@@ -66,6 +66,7 @@ async function main() {
     name: 'Software Engineering',
     departmentCode: 'SE',
     isActive: true,
+    parentDepartment: department1._id,
     positions: [],
   });
 
@@ -74,20 +75,20 @@ async function main() {
   // ------------------------------
   const position1 = await Position.create({
     title: 'HR Specialist',
-    departmentId: department1.departmentId,
+    departmentId: department1._id,
     code: 'HR1',
     payGrade: 'PG3',
   });
 
   const position2 = await Position.create({
     title: 'Software Engineer',
-    departmentId: department2.departmentId,
+    departmentId: department2._id,
     code: 'SE1',
     payGrade: 'PG4',
   });
 
-   department1.positions.push(1); // Example numeric ID
-  department2.positions.push(2);
+  department1.positions.push(position1._id);
+  department2.positions.push(position2._id);
   await department1.save();
   await department2.save();
   // ------------------------------
@@ -95,7 +96,7 @@ async function main() {
   // ------------------------------
   const deptManager1 = await DepartmentManager.create({
     managerId: 'DM001',
-    managerDepartment: department1.departmentId,
+    managerDepartment: department1._id,
     managerPosition: position1._id,
     firstName: 'John',
     lastName: 'Doe',
@@ -108,7 +109,7 @@ async function main() {
 
   const deptManager2 = await DepartmentManager.create({
     managerId: 'DM002',
-    managerDepartment: department2.departmentId,
+    managerDepartment: department2._id,
     managerPosition: position2._id,
     firstName: 'Jane',
     lastName: 'Smith',
@@ -160,7 +161,7 @@ async function main() {
     emailOfficial: 'alice.brown@company.com',
     password: 'password123',
     phoneNumber: '0112233445',
-    assignedDepartments: [department1.departmentId, department2.departmentId],
+    assignedDepartments: [department1._id, department2._id],
     isActive: true,
   });
 
