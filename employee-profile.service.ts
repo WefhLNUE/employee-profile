@@ -1,4 +1,165 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException 
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
+
+//SCHEMAS AND ENUMS
+import {
+  EmployeeProfile,
+  EmployeeProfileDocument,
+} from './models/employee-profile.schema';
+
+import {
+  EmployeeProfileChangeRequest,
+} from './models/ep-change-request.schema';
+
+import {
+  ProfileChangeStatus,
+  SystemRole,
+} from './enums/employee-profile.enums';
+
+//DTOS
+import { CreateEmployeeDto } from './dto/create-employee.dto';
+import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
+import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
+import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+import { Counter } from './models/counter.schema';
 
 @Injectable()
-export class EmployeeProfileService {}
+export class EmployeeProfileService {
+    constructor(
+        @InjectModel(EmployeeProfile.name)
+        private empModel: Model<EmployeeProfileDocument>,
+
+        @InjectModel('Counter')
+        private readonly counterModel: Model<any>,
+
+        @InjectModel(EmployeeProfileChangeRequest.name)
+        private changeReqModel: Model<EmployeeProfileChangeRequest>,
+    ) {}
+
+    private async getNextEmployeeNumber(): Promise<string> {
+        const counter = await this.counterModel.findOneAndUpdate(
+        { name: 'employeeNumber' },
+        { $inc: { value: 1 } },
+        { new: true, upsert: true }
+        );
+
+        const number = counter.value + 1000; // 1001, 1002, 1003...
+        return `EMP-${number}`;
+    }
+
+    // ----------------------------- //
+    //         EMPLOYEE CRUD         //
+    // ----------------------------- //
+
+    async createEmployee(dto: CreateEmployeeDto) {
+        const employeeNumber = await this.getNextEmployeeNumber();
+
+        const created = new this.empModel({
+        ...dto,
+        employeeNumber,
+        });
+
+        return created.save();
+    }
+
+    async getAllEmployees() {
+        return this.empModel.find().lean();
+    }
+
+    async getEmployee(id: string) {
+        if (!Types.ObjectId.isValid(id))
+        throw new BadRequestException('Invalid employee ID');
+
+        const emp = await this.empModel.findById(id).lean();
+        if (!emp) throw new NotFoundException('Employee not found');
+
+        return emp;
+    }
+
+    async updateEmployeeSelfImmediate(id: string, dto: UpdateEmployeeSelfImmediateDto) {
+        if (dto.address && typeof dto.address === "string") {
+            dto.address = { city: dto.address };
+        }
+
+        return this.empModel.findByIdAndUpdate(
+            id,
+            { ...dto, updatedAt: new Date() },
+            { new: true }
+        );
+    }
+
+    // Admin update (contract, position, etc.)
+    async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto) {
+        return this.empModel.findByIdAndUpdate(
+        id,
+        { ...dto, updatedAt: new Date() },
+        { new: true },
+        );
+    }
+
+    // ----------------------------- //
+    //     PROFILE CHANGE REQUESTS   //
+    // ----------------------------- //
+
+    async createChangeRequest(id: string, dto: CreateEmployeeChangeRequestDto) {
+        if (!Types.ObjectId.isValid(id))
+            throw new BadRequestException('Invalid employee ID');
+
+        const requestId = `REQ-${Date.now()}`;
+
+        return this.changeReqModel.create({
+            requestId,
+            employeeProfileId: id,
+            requestDescription: dto.requestDescription,
+            reason: dto.reason,
+            status: ProfileChangeStatus.PENDING,
+            submittedAt: new Date(),
+        });
+    }
+
+
+
+    async listChangeRequests() {
+        return this.changeReqModel
+        .find()
+        .populate('employeeProfileId')
+        .lean();
+    }
+
+    async getChangeRequest(requestId: string) {
+        return this.changeReqModel.findOne({ requestId }).lean();
+    }
+
+    async reviewChangeRequest(
+        requestId: string,
+        approve: boolean,
+        reviewerRole: SystemRole,
+        patch?: any
+        ) {
+        if (![SystemRole.HR_MANAGER, SystemRole.HR_ADMIN].includes(reviewerRole))
+            throw new ForbiddenException('Only HR Manager or HR Admin can review change requests.');
+
+        const req = await this.changeReqModel.findOne({ requestId });
+        if (!req) throw new NotFoundException('Request not found');
+
+        req.status = approve ? ProfileChangeStatus.APPROVED : ProfileChangeStatus.REJECTED;
+        req.processedAt = new Date();
+        await req.save();
+
+        if (approve && patch) {
+            await this.empModel.findByIdAndUpdate(
+            req.employeeProfileId,
+            { ...patch, updatedAt: new Date() }
+            );
+        }
+
+        return req;
+    }
+
+}

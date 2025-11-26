@@ -19,6 +19,7 @@ import {
   EmployeeQualification,
   EmployeeQualificationSchema,
 } from './models/qualification.schema';
+import { CounterSchema } from './models/counter.schema';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import {
         name: EmployeeProfileChangeRequest.name,
         schema: EmployeeProfileChangeRequestSchema,
       },
+      { name: 'Counter', schema: CounterSchema },
       { name: EmployeeQualification.name, schema: EmployeeQualificationSchema },
     ]),
   ],
