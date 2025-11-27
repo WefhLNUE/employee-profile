@@ -11,6 +11,7 @@ export class CreateEmployeeDto {
   @IsDateString() dateOfHire: string;
 
   @IsOptional() @IsString() workEmail?: string;
+  @IsOptional() @IsString() password?: string;
   @IsOptional() @IsString() biography?: string;
 
   @IsOptional() @IsDateString() contractStartDate?: string;

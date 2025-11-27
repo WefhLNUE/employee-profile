@@ -28,6 +28,8 @@ import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
 import { Counter } from './models/counter.schema';
+import { RegisterEmployeeDto } from './dto/register-employee.dto';
+
 
 @Injectable()
 export class EmployeeProfileService {
@@ -35,7 +37,7 @@ export class EmployeeProfileService {
         @InjectModel(EmployeeProfile.name)
         private empModel: Model<EmployeeProfileDocument>,
 
-        @InjectModel('Counter')
+        @InjectModel(Counter.name)
         private readonly counterModel: Model<any>,
 
         @InjectModel(EmployeeProfileChangeRequest.name)
@@ -57,16 +59,29 @@ export class EmployeeProfileService {
     //         EMPLOYEE CRUD         //
     // ----------------------------- //
 
-    async createEmployee(dto: CreateEmployeeDto) {
+    // async createEmployee(dto: CreateEmployeeDto) {
+    //     const employeeNumber = await this.getNextEmployeeNumber();
+
+    //     const created = new this.empModel({
+    //     ...dto,
+    //     employeeNumber,
+    //     });
+
+    //     return created.save();
+    // }
+
+    async createEmployee(dto: RegisterEmployeeDto) {
         const employeeNumber = await this.getNextEmployeeNumber();
 
         const created = new this.empModel({
-        ...dto,
-        employeeNumber,
+            ...dto,
+            employeeNumber,
         });
 
         return created.save();
     }
+
+
 
     async getAllEmployees() {
         return this.empModel.find().lean();
