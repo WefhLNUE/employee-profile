@@ -7,26 +7,40 @@ import {
   Put,
   Req,
 } from '@nestjs/common';
+//import { CreateEmployeeDto } from './dto/create-employee.dto';
 
 import { EmployeeProfileService } from './employee-profile.service';
-import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
 import { SystemRole } from './enums/employee-profile.enums';
+import { RegisterEmployeeDto } from './dto/register-employee.dto';
 
 import { Roles } from '../auth/decorator/roles.decorator';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt.guard';
+
 
 @Controller('employee-profile')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeProfileController {
     constructor(private readonly svc: EmployeeProfileService) {}
 
     //HR creates employee
+    // @Post()
+    // @Roles(SystemRole.HR_MANAGER)
+    // createEmployee(@Body() dto: CreateEmployeeDto) {
+    //     return this.svc.createEmployee(dto);
+    // }
+
+
     @Post()
-    @Roles(SystemRole.HR_MANAGER)
-    createEmployee(@Body() dto: CreateEmployeeDto) {
+    //@Roles(SystemRole.HR_MANAGER)
+    createEmployee(@Body() dto: RegisterEmployeeDto) {
         return this.svc.createEmployee(dto);
     }
+
 
     //Get all employees
     @Get()
