@@ -65,10 +65,10 @@ export class EmployeeProfileController {
 
     // Immediate update
     @Put(':id/self/immediate')
-    @Roles(
-        SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.DEPARTMENT_HEAD
-    )
+    // @Roles(
+    //     SystemRole.DEPARTMENT_EMPLOYEE,
+    //     SystemRole.DEPARTMENT_HEAD
+    // )
     updateSelfImmediate(
         @Param('id') id: string,
         @Body() dto: UpdateEmployeeSelfImmediateDto,
@@ -78,10 +78,10 @@ export class EmployeeProfileController {
     }
 
     // Critical changes → change request
-    @Post(':id/self/request-change')
+    @Post(':id/self/change-request')
     @Roles(
         SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.DEPARTMENT_HEAD
+        SystemRole.HR_EMPLOYEE
     )
     createChangeRequest(
         @Param('id') id: string, 
@@ -125,7 +125,7 @@ export class EmployeeProfileController {
         return this.svc.reviewChangeRequest(
         requestId,
         body.approve,
-        req.user.role,
+        // req.user.role,
         body.patch,
         );
     }

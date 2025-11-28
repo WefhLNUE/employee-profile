@@ -37,6 +37,9 @@ export class EmployeeProfileService {
         @InjectModel(EmployeeProfile.name)
         private empModel: Model<EmployeeProfileDocument>,
 
+        @InjectModel(EmployeeProfile.name)
+        private employeeModel: Model<EmployeeProfile>,
+
         @InjectModel(Counter.name)
         private readonly counterModel: Model<any>,
 
@@ -150,22 +153,29 @@ export class EmployeeProfileService {
     }
 
     // Admin update (contract, position, etc.)
-    async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto, user:any) {
-        if (user.id !== id)
-            throw new ForbiddenException("You can only submit change requests for yourself.");
+    // async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto, user:any) {
+    //     // if (user.id !== id)
+    //     //     throw new ForbiddenException("You can only submit change requests for yourself.");
 
-        if (!Types.ObjectId.isValid(id))
-            throw new BadRequestException('Invalid employee ID');
+    //     if (!Types.ObjectId.isValid(id))
+    //         throw new BadRequestException('Invalid employee ID');
 
-        const requestId = `REQ-${Date.now()}`;
+    //     const requestId = `REQ-${Date.now()}`;
 
-        return this.changeReqModel.create({
-            requestId,
-            employeeProfileId: id,
-            status: ProfileChangeStatus.PENDING,
-            submittedAt: new Date(),
-        });
-    }
+    //     return this.changeReqModel.create({
+    //         requestId,
+    //         employeeProfileId: id,
+    //         status: ProfileChangeStatus.PENDING,
+    //         submittedAt: new Date(),
+    //     });
+    // }
+    async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto, user: any) {
+    if (!Types.ObjectId.isValid(id))
+        throw new BadRequestException('Invalid employee ID');
+
+    return this.employeeModel.findByIdAndUpdate(id, dto, { new: true });
+}
+
 
     // ----------------------------- //
     //     PROFILE CHANGE REQUESTS   //
@@ -204,23 +214,23 @@ export class EmployeeProfileService {
     async reviewChangeRequest(
         requestId: string,
         approve: boolean,
-        reviewerRole: SystemRole,
+        // reviewerRole: SystemRole,
         patch?: any
         ) {
-        if (![SystemRole.HR_MANAGER, SystemRole.HR_ADMIN].includes(reviewerRole))
-            throw new ForbiddenException('Only HR Manager or HR Admin can review change requests.');
-
         const req = await this.changeReqModel.findOne({ requestId });
         if (!req) throw new NotFoundException('Request not found');
 
-        req.status = approve ? ProfileChangeStatus.APPROVED : ProfileChangeStatus.REJECTED;
+        req.status = approve
+            ? ProfileChangeStatus.APPROVED
+            : ProfileChangeStatus.REJECTED;
+
         req.processedAt = new Date();
         await req.save();
 
         if (approve && patch) {
             await this.empModel.findByIdAndUpdate(
-            req.employeeProfileId,
-            { ...patch, updatedAt: new Date() }
+                req.employeeProfileId,
+                { ...patch, updatedAt: new Date() }
             );
         }
 
