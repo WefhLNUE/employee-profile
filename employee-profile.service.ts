@@ -20,6 +20,7 @@ import {
 import {
   ProfileChangeStatus,
   SystemRole,
+  CandidateStatus,
 } from './enums/employee-profile.enums';
 
 //DTOS
@@ -28,7 +29,12 @@ import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
 import { Counter } from './models/counter.schema';
+import { Candidate } from './models/candidate.schema';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
+import { EmployeeSystemRole } from './models/employee-system-role.schema';
+import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { Department } from 'src/organization-structure/models/department.schema';
+import { Position } from 'src/organization-structure/models/position.schema';
 
 
 @Injectable()
@@ -45,6 +51,15 @@ export class EmployeeProfileService {
 
         @InjectModel(EmployeeProfileChangeRequest.name)
         private changeReqModel: Model<EmployeeProfileChangeRequest>,
+
+        @InjectModel(EmployeeSystemRole.name)
+        private empRoleModel: Model<EmployeeSystemRole>,
+
+        @InjectModel(Candidate.name)
+        private candidateModel: Model<Candidate>,
+
+        @InjectModel(Department.name)
+        private departmentModel: Model<Department>,
     ) {}
 
     private async getNextEmployeeNumber(): Promise<string> {
@@ -61,18 +76,7 @@ export class EmployeeProfileService {
     // ----------------------------- //
     //         EMPLOYEE CRUD         //
     // ----------------------------- //
-
-    // async createEmployee(dto: CreateEmployeeDto) {
-    //     const employeeNumber = await this.getNextEmployeeNumber();
-
-    //     const created = new this.empModel({
-    //     ...dto,
-    //     employeeNumber,
-    //     });
-
-    //     return created.save();
-    // }
-
+    
     async createEmployee(dto: RegisterEmployeeDto) {
         const employeeNumber = await this.getNextEmployeeNumber();
 
@@ -84,10 +88,58 @@ export class EmployeeProfileService {
         return created.save();
     }
 
+    async createCandidate(dto: CreateCandidateDto) {
+        const candidateNumber = `CAND-${Date.now()}`;
+
+        return this.candidateModel.create({
+            ...dto,
+            candidateNumber,
+            applicationDate: new Date(),
+            status: CandidateStatus.APPLIED,
+        });
+    }
 
 
-    async getAllEmployees() {
-        return this.empModel.find().lean();
+    async getMyProfile(employeeNumber: string, user: any) {
+        const employee = await this.empModel.findOne({ employeeNumber });
+        if (!employee) throw new NotFoundException("Employee not found");
+
+        if(user.employeeNumber !== employeeNumber)
+            throw new ForbiddenException("You can only view your own profile.");
+        return employee;
+    }
+
+    async getAllEmployees(user: any) {
+        // return this.empModel.find().lean();
+            const hrRoles = [
+            SystemRole.HR_MANAGER,
+            SystemRole.HR_EMPLOYEE,
+            SystemRole.HR_ADMIN,
+            SystemRole.SYSTEM_ADMIN,
+        ];
+
+        // HR can see all employees
+        if (user.roles.some(r => hrRoles.includes(r))) {
+            return this.empModel.find().lean();
+        }
+
+        // Department Head → only employees in their department
+        if (user.roles.includes(SystemRole.DEPARTMENT_HEAD)) {
+            if (!user.primaryDepartmentId) {
+                throw new ForbiddenException("Your department is not set.");
+            }
+
+            return this.empModel
+                .find({ primaryDepartmentId: user.primaryDepartmentId })
+                .lean();
+        }
+
+        // // Department Employee should NOT access this list
+        // if (user.roles === SystemRole.DEPARTMENT_EMPLOYEE) {
+        //     throw new ForbiddenException("You are not allowed to view all employees.");
+        // }
+
+        throw new ForbiddenException("You are not allowed to view this resource.");
     }
 
     async getEmployee(id: string, user: any) {
@@ -134,41 +186,58 @@ export class EmployeeProfileService {
     }
 
     async updateEmployeeSelfImmediate(
-        id: string,
+        employeeNumber: string,
         dto: UpdateEmployeeSelfImmediateDto,
         user: any
     ) {
-        if (user.id !== id)
+        const employee = await this.empModel.findOne({ employeeNumber });
+        if (!employee) throw new NotFoundException("Employee not found");
+        
+        if (user.employeeNumber !== employeeNumber)
             throw new ForbiddenException("You can only update your own profile.");
 
-        if (dto.address && typeof dto.address === "string") {
-            dto.address = { city: dto.address };
+        // Only allow these fields
+        const allowedFields = [
+            "profilePictureUrl",
+            "biography",
+            "address",
+            "personalEmail",
+            "mobilePhone"
+        ];
+
+        const updateData: Record<string, any> = {};
+
+
+        for (const key of allowedFields) {
+            if (dto[key] !== undefined) {
+                updateData[key] = dto[key];
+            }
         }
 
-        return this.empModel.findByIdAndUpdate(
-            id,
-            { ...dto, updatedAt: new Date() },
-            { new: true }
-        );
+        // Handle address conversion logic
+        if (updateData.address) {
+
+            // If address is a STRING → treat it as city
+            if (typeof updateData.address === "string") {
+                updateData.address = { city: updateData.address };
+            }
+
+            // If address is an OBJECT → allow only known fields
+            if (typeof updateData.address === "object") {
+                updateData.address = {
+                    ...(updateData.address.city && { city: updateData.address.city }),
+                    ...(updateData.address.streetAddress && { streetAddress: updateData.address.streetAddress }),
+                    ...(updateData.address.country && { country: updateData.address.country })
+                };
+            }
+        }
+
+        updateData["updatedAt"] = new Date();
+
+        return this.empModel.findByIdAndUpdate(employee._id, updateData, { new: true });
     }
 
-    // Admin update (contract, position, etc.)
-    // async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto, user:any) {
-    //     // if (user.id !== id)
-    //     //     throw new ForbiddenException("You can only submit change requests for yourself.");
 
-    //     if (!Types.ObjectId.isValid(id))
-    //         throw new BadRequestException('Invalid employee ID');
-
-    //     const requestId = `REQ-${Date.now()}`;
-
-    //     return this.changeReqModel.create({
-    //         requestId,
-    //         employeeProfileId: id,
-    //         status: ProfileChangeStatus.PENDING,
-    //         submittedAt: new Date(),
-    //     });
-    // }
     async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto, user: any) {
     if (!Types.ObjectId.isValid(id))
         throw new BadRequestException('Invalid employee ID');
@@ -176,23 +245,40 @@ export class EmployeeProfileService {
     return this.employeeModel.findByIdAndUpdate(id, dto, { new: true });
 }
 
+    // async getByEmployeeNumber(employeeNumber: string) {
+    //     const employee = await this.empModel.findOne({ employeeNumber });
+
+    //     if (!employee) {
+    //         throw new NotFoundException('Employee not found');
+    //     }
+
+    //     return employee;
+    // }
+
 
     // ----------------------------- //
     //     PROFILE CHANGE REQUESTS   //
     // ----------------------------- //
 
-    async createChangeRequest(id: string, dto: CreateEmployeeChangeRequestDto,user:any) {
-         if (user.id !== id)
-            throw new ForbiddenException("You can only submit change requests for yourself.");
+    async createChangeRequest(employeeNumber: string, dto: CreateEmployeeChangeRequestDto,user:any) {
+        //debug
+        console.log("logged in emp no: " , user.employeeNumber)
+        console.log("in url emp no:", employeeNumber);
+        console.log("equal?", user.employeeNumber === employeeNumber);
 
-        if (!Types.ObjectId.isValid(id))
-            throw new BadRequestException('Invalid employee ID');
+        if (user.employeeNumber !== employeeNumber)
+            throw new ForbiddenException("You can only submit change requests for yourself.");
+        const employee = await this.empModel.findOne({ employeeNumber });
+        if (!employee) throw new NotFoundException("Employee not found");
+
+        // if (!Types.ObjectId.isValid(employee._id))
+        //     throw new BadRequestException('Invalid employee ID');
 
         const requestId = `REQ-${Date.now()}`;
 
         return this.changeReqModel.create({
             requestId,
-            employeeProfileId: id,
+            employeeProfileId: employee._id,
             requestDescription: dto.requestDescription,
             reason: dto.reason,
             status: ProfileChangeStatus.PENDING,
@@ -200,11 +286,24 @@ export class EmployeeProfileService {
         });
     }
 
-    async listChangeRequests() {
-        return this.changeReqModel
-        .find()
-        .populate('employeeProfileId')
-        .lean();
+    async listChangeRequests(user:any) {
+        if(user.Roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)){
+            return this.changeReqModel
+                .find()
+                .populate('employeeProfileId')
+                .lean();
+        }
+        if(user.roles.includes(SystemRole.HR_EMPLOYEE)){
+            return this.changeReqModel
+                .find()
+                .populate({
+                    path: 'employeeProfileId',
+                    match: { roles: SystemRole.DEPARTMENT_EMPLOYEE },
+                })
+                .lean()
+                .then(res => res.filter(r => r.employeeProfileId !== null));
+        }
+        throw new ForbiddenException('Not allowed');
     }
 
     async getChangeRequest(requestId: string) {
@@ -214,18 +313,50 @@ export class EmployeeProfileService {
     async reviewChangeRequest(
         requestId: string,
         approve: boolean,
-        // reviewerRole: SystemRole,
+        user: any,
         patch?: any
         ) {
-        const req = await this.changeReqModel.findOne({ requestId });
+        const req = await this.changeReqModel
+            .findOne({ requestId })
+            .populate('employeeProfileId')
+            .lean();
+
         if (!req) throw new NotFoundException('Request not found');
 
-        req.status = approve
-            ? ProfileChangeStatus.APPROVED
-            : ProfileChangeStatus.REJECTED;
+        const employee = req.employeeProfileId;
+        const empRole = await this.empRoleModel
+            .findOne({ employeeProfileId: employee._id })
+            .lean();
+        if (!empRole) throw new NotFoundException('Role Connection not found');
+        //------------------
+        // access controll
+        //------------------
+        if (
+            user.roles.includes(SystemRole.HR_MANAGER) ||
+            user.roles.includes(SystemRole.HR_ADMIN)
+        ) {
+            // OK -> continue
+        }
+        // HR_EMPLOYEE => only allowed if employee has DEPARTMENT_EMPLOYEE role
+        else if (user.roles.includes(SystemRole.HR_EMPLOYEE)) {
+            if (!empRole.roles.includes(SystemRole.DEPARTMENT_EMPLOYEE)) {
+                throw new ForbiddenException(
+                    "You cannot review requests for this employee"
+                );
+            }
+        }
+        else {
+            throw new ForbiddenException("Not allowed");
+        }
+        //------------------
+        const update: any = {
+            status: approve
+                ? ProfileChangeStatus.APPROVED
+                : ProfileChangeStatus.REJECTED,
+            processedAt: new Date(),
+        };
 
-        req.processedAt = new Date();
-        await req.save();
+        await this.changeReqModel.updateOne({ requestId }, update);
 
         if (approve && patch) {
             await this.empModel.findByIdAndUpdate(
@@ -234,7 +365,48 @@ export class EmployeeProfileService {
             );
         }
 
-        return req;
+        //return { ...req, ...update };
+        const reqUpdated = this.changeReqModel.findOne({ requestId }).lean();
+        return reqUpdated;
     }
+
+    async getEmployeesInDepartment(departmentId: string, user: any) {
+        console.log("Department ID from logged in user:", departmentId);
+        if (!departmentId) {
+            throw new ForbiddenException("Department ID missing from token.");
+        }
+
+        //--------------------------------------------
+        //IF I WILL REMOVE ME FEL EMPSSSS
+        return this.empModel
+            .find({
+                primaryDepartmentId: departmentId,
+                employeeNumber: { $ne: user.employeeNumber }   // exclude me
+            })
+            .select('firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
+            .lean();
+
+        //--------------------------------------------
+        //IF I WILL PRINT ME FO2 ABL BA2EET EL EMPSSSS
+        // const employees = await this.empModel
+        //     .find({ primaryDepartmentId: departmentId})
+        //     .select('firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
+        //     .lean();
+
+        // //return employees;
+        // console.log(user.employeeNumber)
+        // const me = employees.find(e => e.employeeNumber === user.employeeNumber);
+        // const others = employees.filter(e => e.employeeNumber !== user.employeeNumber);
+
+        // let final = me ? [me, ...others] : others;
+
+        // // Remove employeeNumber BEFORE sending response
+        // return final.map(emp => {
+        //     const { employeeNumber, ...rest } = emp;
+        //     return rest;
+        // });
+
+    }
+
 
 }

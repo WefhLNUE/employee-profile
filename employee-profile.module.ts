@@ -14,6 +14,8 @@ import { EmployeeQualification, EmployeeQualificationSchema } from './models/qua
 import { CounterSchema } from './models/counter.schema';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthModule } from 'src/auth/auth.module';
+import { Department, DepartmentSchema } from 'src/organization-structure/models/department.schema';
+import { Position, PositionSchema } from 'src/organization-structure/models/position.schema';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { AuthModule } from 'src/auth/auth.module';
       { name: Candidate.name, schema: CandidateSchema },
       { name: EmployeeProfile.name, schema: EmployeeProfileSchema },
       { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
+      { name: Department.name, schema: DepartmentSchema},
+      { name: Position.name, schema: PositionSchema },
       {
         name: EmployeeProfileChangeRequest.name,
         schema: EmployeeProfileChangeRequestSchema,

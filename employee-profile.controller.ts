@@ -20,36 +20,76 @@ import { Roles } from '../auth/decorator/roles.decorator';
 import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
-
+import { CreateCandidateDto } from './dto/create-candidate.dto';
 
 @Controller('employee-profile')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeProfileController {
     constructor(private readonly svc: EmployeeProfileService) {}
-
-    //HR creates employee
-    // @Post()
-    // @Roles(SystemRole.HR_MANAGER)
-    // createEmployee(@Body() dto: CreateEmployeeDto) {
-    //     return this.svc.createEmployee(dto);
-    // }
-
-
+    //---------------------
+    // '/employee-profile'
+    //---------------------
     @Post()
     //@Roles(SystemRole.HR_MANAGER)
     createEmployee(@Body() dto: RegisterEmployeeDto) {
         return this.svc.createEmployee(dto);
     }
 
-
-    //Get all employees
+    //get all employees
     @Get()
-    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
-    getAll() {
-        return this.svc.getAllEmployees();
+    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.DEPARTMENT_HEAD)
+    getAll(@Req() req) {
+        return this.svc.getAllEmployees(req.user);
+    } 
+    
+    //-------------------------------
+    // '/employee-profile/candidate'
+    //-------------------------------
+    
+    @Post('candidate')
+    @Roles(SystemRole.RECRUITER)
+    createCandidate(@Body() dto: CreateCandidateDto) {
+        return this.svc.createCandidate(dto);
     }
 
-    //Get employee by id
+    //------------------------------------
+    // '/employee-profile/:employeeNumber'
+    //------------------------------------
+
+    @Get(':employeeNumber/my-profile')
+    getMyProfile(@Param('employeeNumber') employeeNumber: string, @Req() req) {
+        return this.svc.getMyProfile(employeeNumber, req.user);
+    }
+
+    //immediate update // kolo mmkn y edit
+    @Put(':employeeNumber/my-profile/immediate')
+    updateSelfImmediate(
+        @Param('employeeNumber') employeeNumber: string,
+        @Body() dto: UpdateEmployeeSelfImmediateDto,
+        @Req() req
+    ) {
+        return this.svc.updateEmployeeSelfImmediate(employeeNumber, dto, req.user);
+    }
+
+    // Critical changes → change request
+    @Post(':employeeNumber/my-profile/change-request')
+    @Roles(
+        SystemRole.DEPARTMENT_EMPLOYEE,
+        SystemRole.HR_EMPLOYEE
+    )
+    createChangeRequest(
+        @Param('employeeNumber') employeeNumber: string, 
+        @Body() dto: CreateEmployeeChangeRequestDto,
+        @Req() req
+    ) {
+        return this.svc.createChangeRequest(employeeNumber, dto, req.user);
+    }
+
+    //------------------------
+    // '/employee-profile/:id'
+    //------------------------
+
+    //get specific employee by id
     @Get(':id')
     @Roles(
         SystemRole.HR_MANAGER,
@@ -57,39 +97,10 @@ export class EmployeeProfileController {
         SystemRole.HR_ADMIN,
         SystemRole.SYSTEM_ADMIN,
         SystemRole.DEPARTMENT_HEAD,
-        SystemRole.DEPARTMENT_EMPLOYEE
     )
     getOne(@Param('id') id: string, @Req() req) {
         return this.svc.getEmployee(id, req.user);
-    }   
-
-    // Immediate update
-    @Put(':id/self/immediate')
-    // @Roles(
-    //     SystemRole.DEPARTMENT_EMPLOYEE,
-    //     SystemRole.DEPARTMENT_HEAD
-    // )
-    updateSelfImmediate(
-        @Param('id') id: string,
-        @Body() dto: UpdateEmployeeSelfImmediateDto,
-        @Req() req
-    ) {
-        return this.svc.updateEmployeeSelfImmediate(id, dto, req.user);
-    }
-
-    // Critical changes → change request
-    @Post(':id/self/change-request')
-    @Roles(
-        SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.HR_EMPLOYEE
-    )
-    createChangeRequest(
-        @Param('id') id: string, 
-        @Body() dto: CreateEmployeeChangeRequestDto,
-        @Req() req
-    ) {
-        return this.svc.createChangeRequest(id, dto, req.user);
-    }
+    } 
 
     //Admin/HR update lel employee
     @Put(':id/admin')
@@ -102,21 +113,37 @@ export class EmployeeProfileController {
         return this.svc.updateEmployeeAdmin(id, dto, req.user);
     }
 
+    //-------------------------------------
+    // '/employee-profile/change-requests'
+    //-------------------------------------
+
     //HR views all change requests
     @Get('change-requests/all')
     @Roles(
         SystemRole.HR_MANAGER,
         SystemRole.HR_ADMIN,
         SystemRole.HR_EMPLOYEE,
-        SystemRole.SYSTEM_ADMIN
     )
-    getAllCRs() {
-        return this.svc.listChangeRequests();
+    getAllCRs(@Req() req) {
+        return this.svc.listChangeRequests(req.user);
+    }
+
+    @Get('change-request/:requestId')
+    @Roles(
+        SystemRole.DEPARTMENT_EMPLOYEE,
+        SystemRole.HR_EMPLOYEE,
+    )
+    getMyCRs(@Req() req) {
+        return this.svc.getChangeRequest(req.user);
     }
 
     //HR reviews a change request
     @Post('change-request/:requestId/review')
-    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN)
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.HR_EMPLOYEE
+    )
     reviewCR(
         @Param('requestId') requestId: string,
         @Body() body: { approve: boolean; reviewerRole: SystemRole; patch?: any },
@@ -125,9 +152,19 @@ export class EmployeeProfileController {
         return this.svc.reviewChangeRequest(
         requestId,
         body.approve,
-        // req.user.role,
+        req.user,
         body.patch,
         );
     }
+
+    //---------------------------------
+    // '/employee-profile/my-employees'
+    //---------------------------------
+    @Get('my-employees')
+    @Roles(SystemRole.DEPARTMENT_HEAD)
+    getEmployeesInMyDepartment(@Req() req) {
+        return this.svc.getEmployeesInDepartment(req.user.primaryDepartmentId, req.user);
+    }
+
 
 }
