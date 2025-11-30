@@ -6,12 +6,12 @@
     WorkType,
   } from '../enums/employee-profile.enums';
   import { AppraisalRatingScaleType } from '../../performance/enums/performance.enums';
-  import { Department } from '../../organization-structure/models/department.schema';
-  import { Position } from '../../organization-structure/models/position.schema';
-  import { AppraisalCycle } from '../../performance/models/appraisal-cycle.schema';
-  import { AppraisalRecord } from '../../performance/models/appraisal-record.schema';
-  import { AppraisalTemplate } from '../../performance/models/appraisal-template.schema';
-  import { payGrade } from '../../payroll-configuration/models/payGrades.schema';
+  import { Department } from '../../organization-structure/Models/department.schema';
+  import { Position } from '../../organization-structure/Models/position.schema';
+  import { AppraisalCycle } from '../../performance/Models/appraisal-cycle.schema';
+  import { AppraisalRecord } from '../../performance/Models/appraisal-record.schema';
+  import { AppraisalTemplate } from '../../performance/Models/appraisal-template.schema';
+  import { payGrade } from '../../payroll-configuration/Models/payGrades.schema';
   import { UserProfileBase } from './user-schema';
 
   export type EmployeeProfileDocument = HydratedDocument<EmployeeProfile>;

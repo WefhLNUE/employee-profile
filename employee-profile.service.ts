@@ -11,11 +11,11 @@ import { Model, Types } from 'mongoose';
 import {
   EmployeeProfile,
   EmployeeProfileDocument,
-} from './models/employee-profile.schema';
+} from './Models/employee-profile.schema';
 
 import {
   EmployeeProfileChangeRequest,
-} from './models/ep-change-request.schema';
+} from './Models/ep-change-request.schema';
 
 import {
   ProfileChangeStatus,
@@ -28,13 +28,13 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
-import { Counter } from './models/counter.schema';
-import { Candidate } from './models/candidate.schema';
+import { Counter } from './Models/counter.schema';
+import { Candidate } from './Models/candidate.schema';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
-import { EmployeeSystemRole } from './models/employee-system-role.schema';
+import { EmployeeSystemRole } from './Models/employee-system-role.schema';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
-import { Department } from 'src/organization-structure/models/department.schema';
-import { Position } from 'src/organization-structure/models/position.schema';
+import { Department } from 'src/organization-structure/Models/department.schema';
+import { Position } from 'src/organization-structure/Models/position.schema';
 
 
 @Injectable()
