@@ -3,19 +3,19 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { EmployeeProfileController } from './employee-profile.controller';
 import { EmployeeProfileService } from './employee-profile.service';
 
-import { Candidate, CandidateSchema } from './models/candidate.schema';
-import { EmployeeProfile, EmployeeProfileSchema } from './models/employee-profile.schema';
-import { EmployeeSystemRole, EmployeeSystemRoleSchema } from './models/employee-system-role.schema';
+import { Candidate, CandidateSchema } from './Models/candidate.schema';
+import { EmployeeProfile, EmployeeProfileSchema } from './Models/employee-profile.schema';
+import { EmployeeSystemRole, EmployeeSystemRoleSchema } from './Models/employee-system-role.schema';
 import {
   EmployeeProfileChangeRequest,
   EmployeeProfileChangeRequestSchema,
-} from './models/ep-change-request.schema';
-import { EmployeeQualification, EmployeeQualificationSchema } from './models/qualification.schema';
-import { CounterSchema } from './models/counter.schema';
+} from './Models/ep-change-request.schema';
+import { EmployeeQualification, EmployeeQualificationSchema } from './Models/qualification.schema';
+import { CounterSchema } from './Models/counter.schema';
 import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthModule } from 'src/auth/auth.module';
-import { Department, DepartmentSchema } from 'src/organization-structure/models/department.schema';
-import { Position, PositionSchema } from 'src/organization-structure/models/position.schema';
+import { Department, DepartmentSchema } from 'src/organization-structure/Models/department.schema';
+import { Position, PositionSchema } from 'src/organization-structure/Models/position.schema';
 
 @Module({
   imports: [
