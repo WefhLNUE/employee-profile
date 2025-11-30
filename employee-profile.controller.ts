@@ -52,6 +52,59 @@ export class EmployeeProfileController {
         return this.svc.createCandidate(dto);
     }
 
+    //---------------------------------
+    // '/employee-profile/my-employees'
+    //---------------------------------
+    @Get('my-employees')
+    @Roles(SystemRole.DEPARTMENT_HEAD)
+    getEmployeesInMyDepartment(@Req() req) {
+        console.log("alooooooooooooooo",req.user._id)
+        return this.svc.getEmployeesInDepartment(req.user.primaryDepartmentId, req.user);
+    }
+
+    //-------------------------------------
+    // '/employee-profile/change-requests'
+    //-------------------------------------
+
+    //HR views all change requests
+    @Get('change-requests/all')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.HR_EMPLOYEE,
+    )
+    getAllCRs(@Req() req) {
+        return this.svc.listChangeRequests(req.user);
+    }
+
+    @Get('change-request/:requestId')
+    @Roles(
+        SystemRole.DEPARTMENT_EMPLOYEE,
+        SystemRole.HR_EMPLOYEE,
+    )
+    getMyCRs(@Req() req) {
+        return this.svc.getChangeRequest(req.user);
+    }
+
+    //HR reviews a change request
+    @Post('change-request/:requestId/review')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.HR_EMPLOYEE
+    )
+    reviewCR(
+        @Param('requestId') requestId: string,
+        @Body() body: { approve: boolean; reviewerRole: SystemRole; patch?: any },
+        @Req() req
+    ) {
+        return this.svc.reviewChangeRequest(
+        requestId,
+        body.approve,
+        req.user,
+        body.patch,
+        );
+    }
     //------------------------------------
     // '/employee-profile/:employeeNumber'
     //------------------------------------
@@ -113,58 +166,5 @@ export class EmployeeProfileController {
         return this.svc.updateEmployeeAdmin(id, dto, req.user);
     }
 
-    //-------------------------------------
-    // '/employee-profile/change-requests'
-    //-------------------------------------
-
-    //HR views all change requests
-    @Get('change-requests/all')
-    @Roles(
-        SystemRole.HR_MANAGER,
-        SystemRole.HR_ADMIN,
-        SystemRole.HR_EMPLOYEE,
-    )
-    getAllCRs(@Req() req) {
-        return this.svc.listChangeRequests(req.user);
-    }
-
-    @Get('change-request/:requestId')
-    @Roles(
-        SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.HR_EMPLOYEE,
-    )
-    getMyCRs(@Req() req) {
-        return this.svc.getChangeRequest(req.user);
-    }
-
-    //HR reviews a change request
-    @Post('change-request/:requestId/review')
-    @Roles(
-        SystemRole.HR_MANAGER,
-        SystemRole.HR_ADMIN,
-        SystemRole.HR_EMPLOYEE
-    )
-    reviewCR(
-        @Param('requestId') requestId: string,
-        @Body() body: { approve: boolean; reviewerRole: SystemRole; patch?: any },
-        @Req() req
-    ) {
-        return this.svc.reviewChangeRequest(
-        requestId,
-        body.approve,
-        req.user,
-        body.patch,
-        );
-    }
-
-    //---------------------------------
-    // '/employee-profile/my-employees'
-    //---------------------------------
-    @Get('my-employees')
-    @Roles(SystemRole.DEPARTMENT_HEAD)
-    getEmployeesInMyDepartment(@Req() req) {
-        return this.svc.getEmployeesInDepartment(req.user.primaryDepartmentId, req.user);
-    }
-
-
+    
 }
