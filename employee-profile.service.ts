@@ -99,7 +99,17 @@ export class EmployeeProfileService {
         });
     }
 
+    async findByRole(role: SystemRole) {
+        const roleRecords = await this.empRoleModel
+            .find({ roles: role, isActive: true })
+            .populate('employeeProfileId')
+            .lean()
+            .exec();
 
+        return roleRecords
+            .filter(r => r.employeeProfileId)
+            .map(r => r.employeeProfileId as any);
+    }
     async getMyProfile(employeeNumber: string, user: any) {
         const employee = await this.empModel.findOne({ employeeNumber });
         if (!employee) throw new NotFoundException("Employee not found");
