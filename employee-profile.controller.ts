@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Req,
+  Query,
 } from '@nestjs/common';
 //import { CreateEmployeeDto } from './dto/create-employee.dto';
 
@@ -21,6 +22,7 @@ import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { EmployeeSystemRole } from './Models/employee-system-role.schema';
 
 @Controller('employee-profile')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -50,6 +52,11 @@ export class EmployeeProfileController {
     @Roles(SystemRole.RECRUITER)
     createCandidate(@Body() dto: CreateCandidateDto) {
         return this.svc.createCandidate(dto);
+    }
+
+    @Get('roles')
+    async getByRole(@Query('role') role: SystemRole) {
+        return this.svc.findByRole(role);
     }
 
     //------------------------------------
