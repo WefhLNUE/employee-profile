@@ -108,7 +108,7 @@ export class EmployeeProfileService {
 
         return roleRecords
             .filter(r => r.employeeProfileId)
-            .map(r => r.employeeProfileId as any);
+            .map(r => r.employeeProfileId as any);
     }
     async getMyProfile(employeeNumber: string, user: any) {
         const employee = await this.empModel.findOne({ employeeNumber });
