@@ -44,9 +44,32 @@ export class EmployeeProfileController {
         return this.svc.getAllEmployees(req.user);
     } 
     
+    
     //-------------------------------
     // '/employee-profile/candidate'
     //-------------------------------
+
+    // NestJS example
+    @Get('me')
+    getMe(@Req() req) {
+    // req.cookies.employeeNumber is available if using cookie-parser
+    const employeeNumber = req.cookies.employeeNumber;
+    return this.svc.getMyProfile(employeeNumber, req.user);
+    }
+//     @Get('myrole')
+//     getMyRole(@Req() req) {
+//         // req.user is populated by JwtAuthGuard
+//         // return { role: req.user.roles }; // assuming roles is an array
+// return { role: req.user.roles.join(',') };
+//     }
+
+    @Get('myrole')
+  async getMyRoles(@Req() req) {
+    // req.user populated by JwtAuthGuard
+    const employeeId = req.user._id;
+    const roles = await this.svc.getMyRoles(employeeId);
+    return { roles }; // returns JSON like { roles: ['HR_MANAGER', 'SYSTEM_ADMIN'] }
+  }
     
     @Post('candidate')
     @Roles(SystemRole.RECRUITER)
@@ -118,7 +141,7 @@ export class EmployeeProfileController {
 
     @Get(':employeeNumber/my-profile')
     getMyProfile(@Param('employeeNumber') employeeNumber: string, @Req() req) {
-        return this.svc.getMyProfile(employeeNumber, req.user);
+        return this.svc.getMyProfile(req.user.employeeNumber, req.user);
     }
 
     //immediate update // kolo mmkn y edit

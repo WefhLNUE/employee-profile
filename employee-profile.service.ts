@@ -119,6 +119,12 @@ export class EmployeeProfileService {
         return employee;
     }
 
+    async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
+    const record = await this.empRoleModel.findOne({ employeeId }).exec();
+    if (!record) return [];
+    return record.roles; // assuming roles: string[]
+  }
+
     async getAllEmployees(user: any) {
         // return this.empModel.find().lean();
             const hrRoles = [
@@ -297,7 +303,7 @@ export class EmployeeProfileService {
     }
 
     async listChangeRequests(user:any) {
-        if(user.Roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)){
+        if(user.roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)){
             return this.changeReqModel
                 .find()
                 .populate('employeeProfileId')
