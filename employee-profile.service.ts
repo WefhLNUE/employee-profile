@@ -338,7 +338,7 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
 
     async reviewChangeRequest(
         requestId: string,
-        approve: boolean,
+        action: ProfileChangeStatus,
         user: any,
         patch?: any
         ) {
@@ -375,24 +375,22 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
             throw new ForbiddenException("Not allowed");
         }
         //------------------
-        const update: any = {
-            status: approve
-                ? ProfileChangeStatus.APPROVED
-                : ProfileChangeStatus.REJECTED,
-            processedAt: new Date(),
-        };
+        const update: any = { processedAt: new Date() };
+
+        if (action === ProfileChangeStatus.APPROVED) update.status = ProfileChangeStatus.APPROVED;
+        else if (action === ProfileChangeStatus.REJECTED) update.status = ProfileChangeStatus.REJECTED;
+        else if (action === ProfileChangeStatus.CANCELED) update.status = ProfileChangeStatus.CANCELED;
 
         await this.changeReqModel.updateOne({ requestId }, update);
 
-        if (approve && patch) {
-            await this.empModel.findByIdAndUpdate(
-                req.employeeProfileId,
-                { ...patch, updatedAt: new Date() }
-            );
+        if (action === ProfileChangeStatus.APPROVED && patch) {
+        await this.empModel.findByIdAndUpdate(
+            req.employeeProfileId,
+            { ...patch, updatedAt: new Date() }
+        );
         }
 
-        //return { ...req, ...update };
-        const reqUpdated = this.changeReqModel.findOne({ requestId }).lean();
+        const reqUpdated = await this.changeReqModel.findOne({ requestId }).lean();
         return reqUpdated;
     }
 

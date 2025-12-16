@@ -14,6 +14,11 @@ import { EmployeeProfileService } from './employee-profile.service';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+// import { ReviewChangeRequestDto } from './dto/';
+import { ProfileChangeStatus } from './enums/employee-profile.enums';
+
+import { ReviewChangeRequestDto } from './dto/review-change-request.dto';
+
 import { SystemRole } from './enums/employee-profile.enums';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
 
@@ -124,15 +129,11 @@ export class EmployeeProfileController {
     )
     reviewCR(
         @Param('requestId') requestId: string,
-        @Body() body: { approve: boolean; reviewerRole: SystemRole; patch?: any },
+        @Body() body: ReviewChangeRequestDto,
         @Req() req
     ) {
-        return this.svc.reviewChangeRequest(
-        requestId,
-        body.approve,
-        req.user,
-        body.patch,
-        );
+        const { action, patch } = body;
+        return this.svc.reviewChangeRequest(requestId, action, req.user, patch);
     }
     //------------------------------------
     // '/employee-profile/:employeeNumber'
