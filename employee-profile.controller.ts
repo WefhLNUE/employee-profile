@@ -56,17 +56,16 @@ export class EmployeeProfileController {
     const employeeNumber = req.cookies.employeeNumber;
     return this.svc.getMyProfile(employeeNumber, req.user);
     }
-//     @Get('myrole')
-//     getMyRole(@Req() req) {
-//         // req.user is populated by JwtAuthGuard
-//         // return { role: req.user.roles }; // assuming roles is an array
-// return { role: req.user.roles.join(',') };
-//     }
 
     @Get('myrole')
   async getMyRoles(@Req() req) {
     // req.user populated by JwtAuthGuard
-    const employeeId = req.user._id;
+
+    const employeeId = req.user.id;
+    console.log('JWT payload:', req.user);
+
+    console.log('req.user._id:', req.user.id);
+
     const roles = await this.svc.getMyRoles(employeeId);
     return { roles }; // returns JSON like { roles: ['HR_MANAGER', 'SYSTEM_ADMIN'] }
   }

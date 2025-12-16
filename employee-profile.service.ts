@@ -91,12 +91,24 @@ export class EmployeeProfileService {
     async createCandidate(dto: CreateCandidateDto) {
         const candidateNumber = `CAND-${Date.now()}`;
 
-        return this.candidateModel.create({
+        // Create the candidate
+        const candidate = await this.candidateModel.create({
             ...dto,
             candidateNumber,
             applicationDate: new Date(),
             status: CandidateStatus.APPLIED,
         });
+
+        // If roles are provided, create role assignments
+        if (dto.roles && dto.roles.length > 0) {
+            await this.empRoleModel.create({
+                employeeProfileId: candidate._id,
+                roles: dto.roles,
+                isActive: true,
+            });
+        }
+
+        return candidate;
     }
 
     async findByRole(role: SystemRole) {
@@ -119,11 +131,19 @@ export class EmployeeProfileService {
         return employee;
     }
 
-    async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
-    const record = await this.empRoleModel.findOne({ employeeId }).exec();
-    if (!record) return [];
-    return record.roles; // assuming roles: string[]
-  }
+
+async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
+  const id = typeof employeeId === 'string' ? new Types.ObjectId(employeeId) : employeeId;
+
+  console.log('Querying roles for employeeProfileId:', id);
+
+  const record = await this.empRoleModel.findOne({ employeeProfileId: id, isActive: true }).exec();
+
+  console.log('Found record:', record);
+
+  return record?.roles || [];
+}
+
 
     async getAllEmployees(user: any) {
         // return this.empModel.find().lean();
