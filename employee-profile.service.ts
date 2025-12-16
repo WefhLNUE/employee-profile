@@ -91,12 +91,14 @@ export class EmployeeProfileService {
     async createCandidate(dto: CreateCandidateDto) {
         const candidateNumber = `CAND-${Date.now()}`;
 
-        return this.candidateModel.create({
+        // Create the candidate
+        const candidate = await this.candidateModel.create({
             ...dto,
             candidateNumber,
             applicationDate: new Date(),
             status: CandidateStatus.APPLIED,
         });
+        return candidate;
     }
 
     /**
@@ -182,6 +184,20 @@ export class EmployeeProfileService {
             throw new ForbiddenException("You can only view your own profile.");
         return employee;
     }
+
+
+async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
+  const id = typeof employeeId === 'string' ? new Types.ObjectId(employeeId) : employeeId;
+
+  console.log('Querying roles for employeeProfileId:', id);
+
+  const record = await this.empRoleModel.findOne({ employeeProfileId: id, isActive: true }).exec();
+
+  console.log('Found record:', record);
+
+  return record?.roles || [];
+}
+
 
     async getAllEmployees(user: any) {
         // return this.empModel.find().lean();
@@ -361,7 +377,7 @@ export class EmployeeProfileService {
     }
 
     async listChangeRequests(user:any) {
-        if(user.Roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)){
+        if(user.roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)){
             return this.changeReqModel
                 .find()
                 .populate('employeeProfileId')
@@ -386,7 +402,7 @@ export class EmployeeProfileService {
 
     async reviewChangeRequest(
         requestId: string,
-        approve: boolean,
+        action: ProfileChangeStatus,
         user: any,
         patch?: any
         ) {
@@ -423,24 +439,22 @@ export class EmployeeProfileService {
             throw new ForbiddenException("Not allowed");
         }
         //------------------
-        const update: any = {
-            status: approve
-                ? ProfileChangeStatus.APPROVED
-                : ProfileChangeStatus.REJECTED,
-            processedAt: new Date(),
-        };
+        const update: any = { processedAt: new Date() };
+
+        if (action === ProfileChangeStatus.APPROVED) update.status = ProfileChangeStatus.APPROVED;
+        else if (action === ProfileChangeStatus.REJECTED) update.status = ProfileChangeStatus.REJECTED;
+        else if (action === ProfileChangeStatus.CANCELED) update.status = ProfileChangeStatus.CANCELED;
 
         await this.changeReqModel.updateOne({ requestId }, update);
 
-        if (approve && patch) {
-            await this.empModel.findByIdAndUpdate(
-                req.employeeProfileId,
-                { ...patch, updatedAt: new Date() }
-            );
+        if (action === ProfileChangeStatus.APPROVED && patch) {
+        await this.empModel.findByIdAndUpdate(
+            req.employeeProfileId,
+            { ...patch, updatedAt: new Date() }
+        );
         }
 
-        //return { ...req, ...update };
-        const reqUpdated = this.changeReqModel.findOne({ requestId }).lean();
+        const reqUpdated = await this.changeReqModel.findOne({ requestId }).lean();
         return reqUpdated;
     }
 

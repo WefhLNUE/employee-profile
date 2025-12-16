@@ -15,6 +15,11 @@ import { EmployeeProfileService } from './employee-profile.service';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+// import { ReviewChangeRequestDto } from './dto/';
+import { ProfileChangeStatus } from './enums/employee-profile.enums';
+
+import { ReviewChangeRequestDto } from './dto/review-change-request.dto';
+
 import { SystemRole } from './enums/employee-profile.enums';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
 
@@ -46,9 +51,31 @@ export class EmployeeProfileController {
         return this.svc.getAllEmployees(req.user);
     } 
     
+    
     //-------------------------------
     // '/employee-profile/candidate'
     //-------------------------------
+
+    // NestJS example
+    @Get('me')
+    getMe(@Req() req) {
+    // req.cookies.employeeNumber is available if using cookie-parser
+    const employeeNumber = req.cookies.employeeNumber;
+    return this.svc.getMyProfile(employeeNumber, req.user);
+    }
+
+    @Get('myrole')
+  async getMyRoles(@Req() req) {
+    // req.user populated by JwtAuthGuard
+
+    const employeeId = req.user.id;
+    console.log('JWT payload:', req.user);
+
+    console.log('req.user._id:', req.user.id);
+
+    const roles = await this.svc.getMyRoles(employeeId);
+    return { roles }; // returns JSON like { roles: ['HR_MANAGER', 'SYSTEM_ADMIN'] }
+  }
     
     @Post('candidate')
     @Roles(SystemRole.RECRUITER)
@@ -144,15 +171,11 @@ export class EmployeeProfileController {
     )
     reviewCR(
         @Param('requestId') requestId: string,
-        @Body() body: { approve: boolean; reviewerRole: SystemRole; patch?: any },
+        @Body() body: ReviewChangeRequestDto,
         @Req() req
     ) {
-        return this.svc.reviewChangeRequest(
-        requestId,
-        body.approve,
-        req.user,
-        body.patch,
-        );
+        const { action, patch } = body;
+        return this.svc.reviewChangeRequest(requestId, action, req.user, patch);
     }
     //------------------------------------
     // '/employee-profile/:employeeNumber'
@@ -160,7 +183,7 @@ export class EmployeeProfileController {
 
     @Get(':employeeNumber/my-profile')
     getMyProfile(@Param('employeeNumber') employeeNumber: string, @Req() req) {
-        return this.svc.getMyProfile(employeeNumber, req.user);
+        return this.svc.getMyProfile(req.user.employeeNumber, req.user);
     }
 
     //immediate update // kolo mmkn y edit
