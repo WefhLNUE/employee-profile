@@ -100,13 +100,13 @@ export class EmployeeProfileService {
         });
 
         // If roles are provided, create role assignments
-        if (dto.roles && dto.roles.length > 0) {
-            await this.empRoleModel.create({
-                employeeProfileId: candidate._id,
-                roles: dto.roles,
-                isActive: true,
-            });
-        }
+        // if (dto.roles && dto.roles.length > 0) {
+        //     await this.empRoleModel.create({
+        //         employeeProfileId: candidate._id,
+        //         roles: dto.roles,
+        //         isActive: true,
+        //     });
+        // }
 
         return candidate;
     }
