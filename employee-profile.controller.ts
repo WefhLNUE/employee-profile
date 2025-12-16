@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Put,
+  Patch,
   Req,
   Query,
 } from '@nestjs/common';
@@ -22,6 +23,7 @@ import { UseGuards } from '@nestjs/common';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt.guard';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
+import { UpdateCandidateStatusDto } from './dto/update-candidate-status.dto';
 import { EmployeeSystemRole } from './Models/employee-system-role.schema';
 
 @Controller('employee-profile')
@@ -54,9 +56,49 @@ export class EmployeeProfileController {
         return this.svc.createCandidate(dto);
     }
 
+    /**
+     * REC-004: Update candidate status for pipeline tracking
+     * Access: HR Manager, HR Employee, Recruiter
+     */
+    @Patch('candidates/:id/status')
+    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.RECRUITER)
+    updateCandidateStatus(
+        @Param('id') candidateId: string,
+        @Body() updateCandidateStatusDto: UpdateCandidateStatusDto
+    ) {
+        return this.svc.updateCandidateStatus(
+            candidateId,
+            updateCandidateStatusDto.status,
+            updateCandidateStatusDto.notes
+        );
+    }
+
+    /**
+     * Get all candidates for talent pool view
+     * Access: HR Manager, HR Employee, Recruiter
+     */
+    @Get('candidates')
+    @Roles(SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.RECRUITER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
+    getAllCandidates(@Req() req) {
+        return this.svc.getAllCandidates(req.user);
+    }
+
     @Get('roles')
     async getByRole(@Query('role') role: SystemRole) {
         return this.svc.findByRole(role);
+    }
+
+    // Get all employees for selection (e.g., referral dropdown)
+    @Get('all-for-selection')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.HR_EMPLOYEE,
+        SystemRole.RECRUITER,
+        SystemRole.SYSTEM_ADMIN
+    )
+    getAllForSelection(@Req() req) {
+        return this.svc.getAllEmployeesForSelection(req.user);
     }
 
     //---------------------------------

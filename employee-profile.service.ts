@@ -99,6 +99,62 @@ export class EmployeeProfileService {
         });
     }
 
+    /**
+     * REC-004: Update candidate status for pipeline tracking
+     * Used by Kanban drag-and-drop in candidate pipeline
+     */
+    async updateCandidateStatus(
+        candidateId: string,
+        status: CandidateStatus,
+        notes?: string
+    ) {
+        const candidate = await this.candidateModel.findById(candidateId);
+
+        if (!candidate) {
+            throw new NotFoundException(`Candidate with ID ${candidateId} not found`);
+        }
+
+        const oldStatus = candidate.status;
+
+        // Update candidate status
+        candidate.status = status;
+        await candidate.save();
+
+        // TODO: Log status change in history if needed
+        // You could create a history log here similar to application history
+
+        return {
+            candidate,
+            oldStatus,
+            newStatus: status,
+            notes
+        };
+    }
+
+    /**
+     * Get all candidates for talent pool view
+     * Access: HR Manager, HR Employee, Recruiter
+     */
+    async getAllCandidates(user: any) {
+        const hrRoles = [
+            SystemRole.HR_MANAGER,
+            SystemRole.HR_EMPLOYEE,
+            SystemRole.HR_ADMIN,
+            SystemRole.RECRUITER,
+            SystemRole.SYSTEM_ADMIN,
+        ];
+
+        // Check if user has appropriate role
+        if (!user.roles.some(r => hrRoles.includes(r))) {
+            throw new ForbiddenException("You don't have permission to view all candidates");
+        }
+
+        return this.candidateModel
+            .find()
+            .sort({ applicationDate: -1, createdAt: -1 })
+            .lean();
+    }
+
     async findByRole(role: SystemRole) {
         const roleRecords = await this.empRoleModel
             .find({ roles: role, isActive: true })
@@ -109,6 +165,14 @@ export class EmployeeProfileService {
         return roleRecords
             .filter(r => r.employeeProfileId)
             .map(r => r.employeeProfileId as any);
+    }
+
+    async getAllEmployeesForSelection(user: any) {
+        // Return all active employees with minimal data for selection dropdowns
+        return this.empModel
+            .find({ status: 'ACTIVE' })
+            .select('_id firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
+            .lean();
     }
     async getMyProfile(employeeNumber: string, user: any) {
         const employee = await this.empModel.findOne({ employeeNumber });
