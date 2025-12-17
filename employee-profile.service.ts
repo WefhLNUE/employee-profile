@@ -101,10 +101,6 @@ export class EmployeeProfileService {
         return candidate;
     }
 
-    /**
-     * REC-004: Update candidate status for pipeline tracking
-     * Used by Kanban drag-and-drop in candidate pipeline
-     */
     async updateCandidateStatus(
         candidateId: string,
         status: CandidateStatus,
@@ -335,17 +331,6 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
     return this.employeeModel.findByIdAndUpdate(id, dto, { new: true });
 }
 
-    // async getByEmployeeNumber(employeeNumber: string) {
-    //     const employee = await this.empModel.findOne({ employeeNumber });
-
-    //     if (!employee) {
-    //         throw new NotFoundException('Employee not found');
-    //     }
-
-    //     return employee;
-    // }
-
-
     // ----------------------------- //
     //     PROFILE CHANGE REQUESTS   //
     // ----------------------------- //
@@ -396,9 +381,30 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
         throw new ForbiddenException('Not allowed');
     }
 
-    async getChangeRequest(requestId: string) {
-        return this.changeReqModel.findOne({ requestId }).lean();
-    }
+    async getChangeRequestById(requestId: string, user: any) {
+        // Fetch the request and populate employee info
+        const request = await this.changeReqModel
+        .findOne({ requestId })
+        .populate('employeeProfileId')
+        .lean();
+
+        if (!request) throw new NotFoundException('Change request not found');
+
+        // Access control: HR roles can access any request
+        const allowedHrRoles = [SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.HR_EMPLOYEE];
+
+        if (allowedHrRoles.some(role => user.roles.includes(role))) {
+        return request;
+        }
+
+        // Otherwise, check if this request belongs to the logged-in user
+        if (request.employeeProfileId._id.toString() === user.id) {
+            return request;
+        }
+
+        throw new ForbiddenException('Not allowed to view this request');
+        }
+
 
     async reviewChangeRequest(
         requestId: string,
