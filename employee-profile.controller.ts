@@ -58,6 +58,7 @@ export class EmployeeProfileController {
 
     // NestJS example
     @Get('me')
+    @Roles() // Requires authentication but allows any authenticated user
     getMe(@Req() req) {
     // req.cookies.employeeNumber is available if using cookie-parser
     const employeeNumber = req.cookies.employeeNumber;
@@ -65,6 +66,7 @@ export class EmployeeProfileController {
     }
 
     @Get('myrole')
+    @Roles() // Empty @Roles() triggers JWT auth but allows any authenticated user
   async getMyRoles(@Req() req) {
     // req.user populated by JwtAuthGuard
 
@@ -178,12 +180,14 @@ export class EmployeeProfileController {
     //------------------------------------
 
     @Get(':employeeNumber/my-profile')
+    @Roles() // Requires authentication but allows any authenticated user
     getMyProfile(@Param('employeeNumber') employeeNumber: string, @Req() req) {
         return this.svc.getMyProfile(req.user.employeeNumber, req.user);
     }
 
     //immediate update // kolo mmkn y edit
     @Put(':employeeNumber/my-profile/immediate')
+    @Roles() // Requires authentication but allows any authenticated user
     updateSelfImmediate(
         @Param('employeeNumber') employeeNumber: string,
         @Body() dto: UpdateEmployeeSelfImmediateDto,
