@@ -153,13 +153,20 @@ export class EmployeeProfileController {
         return this.svc.listChangeRequests(req.user);
     }
 
+    // @Get('change-request/:requestId')
+    // @Roles(
+    //     SystemRole.DEPARTMENT_EMPLOYEE,
+    //     SystemRole.HR_EMPLOYEE,
+    // )
+    // getMyCRs(@Req() req) {
+    //     return this.svc.getChangeRequest(req.user);
+    // }
     @Get('change-request/:requestId')
-    @Roles(
-        SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.HR_EMPLOYEE,
-    )
-    getMyCRs(@Req() req) {
-        return this.svc.getChangeRequest(req.user);
+    async getChangeRequestById(
+    @Param('requestId') requestId: string,
+    @Req() req
+    ) {
+    return this.svc.getChangeRequestById(requestId, req.user);
     }
 
     //HR reviews a change request
