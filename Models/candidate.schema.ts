@@ -36,3 +36,21 @@ export class Candidate extends UserProfileBase {
 }
 
 export const CandidateSchema = SchemaFactory.createForClass(Candidate);
+
+import bcrypt from 'bcryptjs';
+
+CandidateSchema.pre('save', async function (next) {
+  try {
+    if (!this.isModified('password')) {
+      next();
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password as string, salt);
+
+    next();
+  } catch (err) {
+    next(err as any);
+  }
+});
