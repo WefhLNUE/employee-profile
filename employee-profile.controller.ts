@@ -100,10 +100,6 @@ export class EmployeeProfileController {
         );
     }
 
-    /**
-     * Get all candidates for talent pool view
-     * Access: HR Manager, HR Employee, Recruiter
-     */
     @Get('candidates')
     @Roles(SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.RECRUITER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN)
     getAllCandidates(@Req() req) {
@@ -153,14 +149,7 @@ export class EmployeeProfileController {
         return this.svc.listChangeRequests(req.user);
     }
 
-    // @Get('change-request/:requestId')
-    // @Roles(
-    //     SystemRole.DEPARTMENT_EMPLOYEE,
-    //     SystemRole.HR_EMPLOYEE,
-    // )
-    // getMyCRs(@Req() req) {
-    //     return this.svc.getChangeRequest(req.user);
-    // }
+ 
     @Get('change-request/:requestId')
     async getChangeRequestById(
     @Param('requestId') requestId: string,
