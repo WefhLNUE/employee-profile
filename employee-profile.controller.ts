@@ -15,6 +15,7 @@ import { EmployeeProfileService } from './employee-profile.service';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+import { CreateLegalChangeRequestDto } from './dto/create-legal-change-request.dto';
 // import { ReviewChangeRequestDto } from './dto/';
 import { ProfileChangeStatus } from './enums/employee-profile.enums';
 
@@ -215,6 +216,21 @@ export class EmployeeProfileController {
     ) {
         return this.svc.createChangeRequest(employeeNumber, dto, req.user);
     }
+
+    // Legal name and marital status change request
+    @Post(':employeeNumber/my-profile/legal-change-request')
+    @Roles(
+        SystemRole.DEPARTMENT_EMPLOYEE,
+        SystemRole.HR_EMPLOYEE
+    )
+    createLegalChangeRequest(
+        @Param('employeeNumber') employeeNumber: string,
+        @Body() dto: CreateLegalChangeRequestDto,
+        @Req() req
+    ) {
+        return this.svc.createLegalChangeRequest(employeeNumber, dto, req.user);
+    }
+
 
     //------------------------
     // '/employee-profile/:id'

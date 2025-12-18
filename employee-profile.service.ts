@@ -29,6 +29,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+import { CreateLegalChangeRequestDto } from './dto/create-legal-change-request.dto';
 import { Counter } from './Models/counter.schema';
 import { Candidate } from './Models/candidate.schema';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
@@ -421,6 +422,34 @@ export class EmployeeProfileService {
             submittedAt: new Date(),
         });
     }
+
+    async createLegalChangeRequest(employeeNumber: string, dto: CreateLegalChangeRequestDto, user: any) {
+        if (user.employeeNumber !== employeeNumber)
+            throw new ForbiddenException("You can only submit change requests for yourself.");
+
+        const employee = await this.empModel.findOne({ employeeNumber });
+        if (!employee) throw new NotFoundException("Employee not found");
+
+        const requestId = `LEGAL-REQ-${Date.now()}`;
+
+        // Build description from the requested changes
+        const changes: string[] = [];
+        if (dto.newLegalFirstName) changes.push(`Legal First Name: ${dto.newLegalFirstName}`);
+        if (dto.newLegalLastName) changes.push(`Legal Last Name: ${dto.newLegalLastName}`);
+        if (dto.newMaritalStatus) changes.push(`Marital Status: ${dto.newMaritalStatus}`);
+
+        const requestDescription = `Legal/Marital Status Change Request:\n${changes.join('\n')}`;
+
+        return this.changeReqModel.create({
+            requestId,
+            employeeProfileId: employee._id,
+            requestDescription,
+            reason: dto.reason,
+            status: ProfileChangeStatus.PENDING,
+            submittedAt: new Date(),
+        });
+    }
+
 
     async listChangeRequests(user: any) {
         if (user.roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)) {
