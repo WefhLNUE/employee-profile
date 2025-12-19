@@ -17,11 +17,22 @@ export class UpdateEmployeeAdminDto {
   @IsOptional() @IsString() firstName?: string;
   @IsOptional() @IsString() lastName?: string;
   @IsOptional() @IsEnum(MaritalStatus) maritalStatus?: MaritalStatus;
+  @IsOptional() @IsDateString() dateOfBirth?: string;
+  @IsOptional() @IsString() nationalId?: string;
 
   @IsOptional() @IsString() employeeNumber?: string;
   @IsOptional() @IsDateString() dateOfHire?: string;
   @IsOptional() @IsString() workEmail?: string;
+  @IsOptional() @IsString() personalEmail?: string;
+  @IsOptional() @IsString() mobilePhone?: string;
+  @IsOptional() @IsString() homePhone?: string;
   @IsOptional() @IsString() biography?: string;
+  @IsOptional() @IsString() profilePictureUrl?: string;
+
+  // Address fields
+  @IsOptional() @IsString() streetAddress?: string;
+  @IsOptional() @IsString() city?: string;
+  @IsOptional() @IsString() country?: string;
 
   @IsOptional() @IsDateString() contractStartDate?: string;
   @IsOptional() @IsDateString() contractEndDate?: string;
@@ -42,6 +53,7 @@ export class UpdateEmployeeAdminDto {
   @IsOptional() @IsString() supervisorPositionId?: string;
 
   @IsOptional() @IsString() payGradeId?: string;
+  @IsOptional() @IsString() payGradeName?: string;
 
   // Performance & Appraisal
   @IsOptional() @IsString() lastAppraisalRecordId?: string;

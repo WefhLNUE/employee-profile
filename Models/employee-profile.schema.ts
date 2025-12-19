@@ -1,134 +1,134 @@
-  import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-  import { HydratedDocument, Types } from 'mongoose';
-  import {
-    ContractType,
-    EmployeeStatus,
-    WorkType,
-  } from '../enums/employee-profile.enums';
-  import { AppraisalRatingScaleType } from '../../performance/enums/performance.enums';
-  import { Department } from '../../organization-structure/Models/department.schema';
-  import { Position } from '../../organization-structure/Models/position.schema';
-  import { AppraisalCycle } from '../../performance/Models/appraisal-cycle.schema';
-  import { AppraisalRecord } from '../../performance/Models/appraisal-record.schema';
-  import { AppraisalTemplate } from '../../performance/Models/appraisal-template.schema';
-  import { payGrade } from '../../payroll-configuration/Models/payGrades.schema';
-  import { UserProfileBase } from './user-schema';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument, Types } from 'mongoose';
+import {
+  ContractType,
+  EmployeeStatus,
+  WorkType,
+} from '../enums/employee-profile.enums';
+import { AppraisalRatingScaleType } from '../../performance/enums/performance.enums';
+import { Department } from '../../organization-structure/Models/department.schema';
+import { Position } from '../../organization-structure/Models/position.schema';
+import { AppraisalCycle } from '../../performance/Models/appraisal-cycle.schema';
+import { AppraisalRecord } from '../../performance/Models/appraisal-record.schema';
+import { AppraisalTemplate } from '../../performance/Models/appraisal-template.schema';
+import { payGrade } from '../../payroll-configuration/Models/payGrades.schema';
+import { UserProfileBase } from './user-schema';
 
-  export type EmployeeProfileDocument = HydratedDocument<EmployeeProfile>;
+export type EmployeeProfileDocument = HydratedDocument<EmployeeProfile>;
 
-  @Schema({ collection: 'employee_profiles', timestamps: true })
-  export class EmployeeProfile extends UserProfileBase {
-    // Core IDs
-    @Prop({ type: String, required: true, unique: true })
-    employeeNumber: string; // HR/Payroll number
+@Schema({ collection: 'employee_profiles', timestamps: true })
+export class EmployeeProfile extends UserProfileBase {
+  // Core IDs
+  @Prop({ type: String, required: true, unique: true })
+  employeeNumber: string; // HR/Payroll number
 
-    @Prop({ type: Date, required: true })
-    dateOfHire: Date;
+  @Prop({ type: Date, required: true })
+  dateOfHire: Date;
 
-    @Prop({ type: String })
-    workEmail?: string;
+  @Prop({ type: String })
+  workEmail?: string;
 
-    @Prop({ type: String })
-    biography?: string;
+  @Prop({ type: String })
+  biography?: string;
 
-    @Prop({ type: Date })
-    contractStartDate?: Date;
+  @Prop({ type: Date })
+  contractStartDate?: Date;
 
-    @Prop({ type: Date })
-    contractEndDate?: Date;
+  @Prop({ type: Date })
+  contractEndDate?: Date;
 
-    // Banking details
-    @Prop({ type: String })
-    bankName?: string;
+  // Banking details
+  @Prop({ type: String })
+  bankName?: string;
 
-    @Prop({ type: String })
-    bankAccountNumber?: string;
+  @Prop({ type: String })
+  bankAccountNumber?: string;
 
-    
-    @Prop({
-      type: String,
-      enum: Object.values(ContractType),
-      required: false,
-    })
-    contractType?: ContractType;
 
-    @Prop({
-      type: String,
-      enum: Object.values(WorkType),
-      required: false,
-    })
-    workType?: WorkType;
+  @Prop({
+    type: String,
+    enum: Object.values(ContractType),
+    required: false,
+  })
+  contractType?: ContractType;
 
-    @Prop({
-      type: String,
-      enum: Object.values(EmployeeStatus),
-      required: true,
-      default: EmployeeStatus.ACTIVE,
-    })
-    status: EmployeeStatus;
+  @Prop({
+    type: String,
+    enum: Object.values(WorkType),
+    required: false,
+  })
+  workType?: WorkType;
 
-    @Prop({ type: Date, default: () => new Date() })
-    statusEffectiveFrom?: Date;
+  @Prop({
+    type: String,
+    enum: Object.values(EmployeeStatus),
+    required: true,
+    default: EmployeeStatus.ACTIVE,
+  })
+  status: EmployeeStatus;
 
-    // Org Structure links
-    @Prop({ type: Types.ObjectId, ref: 'Position' })
-    primaryPositionId?: Types.ObjectId;
+  @Prop({ type: Date, default: () => new Date() })
+  statusEffectiveFrom?: Date;
 
-    @Prop({ type: Types.ObjectId, ref: 'Department' })
-    primaryDepartmentId?: Types.ObjectId;
+  // Org Structure links
+  @Prop({ type: Types.ObjectId, ref: 'Position' })
+  primaryPositionId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'Position' })
-    supervisorPositionId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Department' })
+  primaryDepartmentId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: payGrade.name })
-    payGradeId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Position' })
+  supervisorPositionId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'AppraisalRecord' })
-    lastAppraisalRecordId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: payGrade.name })
+  payGradeId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'AppraisalCycle' })
-    lastAppraisalCycleId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'AppraisalRecord' })
+  lastAppraisalRecordId?: Types.ObjectId;
 
-    @Prop({ type: Types.ObjectId, ref: 'AppraisalTemplate' })
-    lastAppraisalTemplateId?: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'AppraisalCycle' })
+  lastAppraisalCycleId?: Types.ObjectId;
 
-    @Prop({ type: Date })
-    lastAppraisalDate?: Date;
+  @Prop({ type: Types.ObjectId, ref: 'AppraisalTemplate' })
+  lastAppraisalTemplateId?: Types.ObjectId;
 
-    @Prop({ type: Number })
-    lastAppraisalScore?: number;
+  @Prop({ type: Date })
+  lastAppraisalDate?: Date;
 
-    @Prop({ type: String })
-    lastAppraisalRatingLabel?: string;
+  @Prop({ type: Number })
+  lastAppraisalScore?: number;
 
-    @Prop({
-      type: String,
-      enum: Object.values(AppraisalRatingScaleType),
-    })
-    lastAppraisalScaleType?: AppraisalRatingScaleType;
+  @Prop({ type: String })
+  lastAppraisalRatingLabel?: string;
 
-    @Prop({ type: String })
-    lastDevelopmentPlanSummary?: string;
-  }
+  @Prop({
+    type: String,
+    enum: Object.values(AppraisalRatingScaleType),
+  })
+  lastAppraisalScaleType?: AppraisalRatingScaleType;
 
-  export const EmployeeProfileSchema =
-    SchemaFactory.createForClass(EmployeeProfile);
+  @Prop({ type: String })
+  lastDevelopmentPlanSummary?: string;
+}
 
-  import bcrypt from 'bcryptjs';
+export const EmployeeProfileSchema =
+  SchemaFactory.createForClass(EmployeeProfile);
 
-  EmployeeProfileSchema.pre('save', async function (next) {
-    try {
-      if (!this.isModified('password')) {
-        next();
-        return;
-      }
+import bcrypt from 'bcryptjs';
 
-      const salt = await bcrypt.genSalt(10);
-      this.password = await bcrypt.hash(this.password as string, salt);
-
+EmployeeProfileSchema.pre('save', async function (next) {
+  try {
+    if (!this.isModified('password')) {
       next();
-    } catch (err) {
-      next(err as any);
+      return;
     }
-  });
+
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password as string, salt);
+
+    next();
+  } catch (err) {
+    next(err as any);
+  }
+});
 

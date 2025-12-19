@@ -1,4 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common';
+import { PayrollConfigurationModule } from '../payroll-configuration/payroll-configuration.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EmployeeProfileController } from './employee-profile.controller';
 import { EmployeeProfileService } from './employee-profile.service';
@@ -20,10 +21,13 @@ import { Department, DepartmentSchema } from 'src/organization-structure/Models/
 import { Position, PositionSchema } from 'src/organization-structure/Models/position.schema';
 import { AppraisalRecord, AppraisalRecordSchema } from 'src/performance/Models/appraisal-record.schema';
 import { AppraisalTemplate, AppraisalTemplateSchema } from 'src/performance/Models/appraisal-template.schema';
+import { TimeManagementModule } from 'src/time-management/time-management.module';
 
 @Module({
   imports: [
     forwardRef(() => AuthModule),
+    PayrollConfigurationModule,
+    TimeManagementModule,
     MongooseModule.forFeature([
       { name: Candidate.name, schema: CandidateSchema },
       { name: EmployeeProfile.name, schema: EmployeeProfileSchema },

@@ -43,6 +43,9 @@ import { ApplicationStatusHistory } from 'src/recruitment/Models/application-his
 import { AppraisalRecord } from 'src/performance/Models/appraisal-record.schema';
 import { AppraisalTemplate } from 'src/performance/Models/appraisal-template.schema';
 import { AppraisalRecordStatus } from 'src/performance/enums/performance.enums';
+import { PayrollConfigurationService } from 'src/payroll-configuration/payroll-configuration.service';
+import { ConfigStatus } from 'src/payroll-configuration/enums/payroll-configuration-enums';
+import { NotificationService } from 'src/time-management/services/notification.service';
 
 
 @Injectable()
@@ -80,6 +83,9 @@ export class EmployeeProfileService {
 
         @InjectModel(AppraisalTemplate.name)
         private appraisalTemplateModel: Model<AppraisalTemplate>,
+
+        private readonly payrollConfigService: PayrollConfigurationService,
+        private readonly notificationService: NotificationService,
     ) { }
 
     private async getNextEmployeeNumber(): Promise<string> {
@@ -575,7 +581,38 @@ export class EmployeeProfileService {
 
         updateData["updatedAt"] = new Date();
 
-        return this.empModel.findByIdAndUpdate(employee._id, updateData, { new: true });
+        const updatedEmployee = await this.empModel.findByIdAndUpdate(employee._id, updateData, { new: true });
+
+        // NOTIFICATION LOGIC
+        try {
+            const message = `Employee ${employee.firstName} ${employee.lastName} updated their profile.`;
+
+            // 1. Notify the employee themselves
+            await this.notificationService.createNotification(employee._id, "You have successfully updated your profile.");
+
+            // 2. Notify HR Managers
+            // Find all employees who have the HR_MANAGER role
+            const hrManagers = await this.empRoleModel.find({
+                roles: SystemRole.HR_MANAGER,
+                isActive: true
+            }).populate('employeeProfileId');
+
+            for (const record of hrManagers) {
+                if (record.employeeProfileId) {
+                    const hrId = (record.employeeProfileId as any)._id;
+                    // Avoid duplicate notification if the employee is also an HR Manager updating their own profile
+                    if (hrId.toString() !== employee._id.toString()) {
+                        await this.notificationService.createNotification(hrId, message);
+                    }
+                }
+            }
+
+        } catch (error) {
+            console.error("Failed to send profile update notifications:", error);
+            // We do not throw here, so the update itself remains successful
+        }
+
+        return updatedEmployee;
     }
 
 
@@ -602,10 +639,55 @@ export class EmployeeProfileService {
             } else if (profileData[field] && typeof profileData[field] === 'string' && Types.ObjectId.isValid(profileData[field])) {
                 profileData[field] = new Types.ObjectId(profileData[field]);
             }
+
         });
 
+        // Handle address fields - merge with existing address instead of replacing
+        const { streetAddress, city, country, ...restData } = profileData;
+        if (streetAddress !== undefined || city !== undefined || country !== undefined) {
+            // Fetch existing employee to get current address
+            const existingEmployee = await this.empModel.findById(id);
+            const currentAddress = existingEmployee?.address || {};
+
+            restData['address'] = {
+                streetAddress: streetAddress !== undefined ? streetAddress : currentAddress.streetAddress,
+                city: city !== undefined ? city : currentAddress.city,
+                country: country !== undefined ? country : currentAddress.country
+            };
+        }
+
+        // Handle Pay Grade Name Input
+        if (dto.payGradeName) {
+            const gradeName = dto.payGradeName.trim();
+            // 1. Try to find existing pay grade
+            let payGradeDoc = await this.payrollConfigService.getAllPayGrades().then(grades =>
+                grades.find(g => g.grade === gradeName)
+            );
+
+            // 2. If not found, create it as DRAFT with defaults
+            if (!payGradeDoc) {
+                try {
+                    payGradeDoc = await this.payrollConfigService.createPayGrade({
+                        grade: gradeName,
+                        baseSalary: 6000,
+                        grossSalary: 6000,
+                        status: ConfigStatus.DRAFT
+                    });
+                } catch (err) {
+                    // Fallback/log if creation fails (e.g. valid checks)
+                    console.error("Failed to auto-create pay grade:", err);
+                    throw new BadRequestException(`Failed to create new pay grade '${gradeName}': ${err.message}`);
+                }
+            }
+
+            // 3. Assign the ID
+            if (payGradeDoc) {
+                restData.payGradeId = payGradeDoc._id as any;
+            }
+        }
+
         // Update profile
-        const updatedProfile = await this.employeeModel.findByIdAndUpdate(id, profileData, { new: true });
+        const updatedProfile = await this.employeeModel.findByIdAndUpdate(id, restData, { new: true });
 
         // Update permissions/roles if provided
         if (permissions !== undefined || roles !== undefined) {
@@ -618,6 +700,16 @@ export class EmployeeProfileService {
                 updateData,
                 { upsert: true }
             );
+        }
+
+        // NOTIFICATION LOGIC
+        try {
+            // Notify the employee that their profile was updated by an admin/manager
+            const message = `Your profile has been updated by an administrator.`;
+            await this.notificationService.createNotification(id, message);
+        } catch (error) {
+            console.error("Failed to send admin profile update notification:", error);
+            // We do not throw here, so the update itself remains successful
         }
 
         return updatedProfile;
@@ -643,7 +735,7 @@ export class EmployeeProfileService {
 
         const requestId = `REQ-${Date.now()}`;
 
-        return this.changeReqModel.create({
+        const changeRequest = await this.changeReqModel.create({
             requestId,
             employeeProfileId: employee._id,
             requestDescription: dto.requestDescription,
@@ -651,6 +743,30 @@ export class EmployeeProfileService {
             status: ProfileChangeStatus.PENDING,
             submittedAt: new Date(),
         });
+
+        // NOTIFICATION LOGIC
+        try {
+            const message = `Employee ${employee.firstName} ${employee.lastName} submitted a profile change request (${requestId}).`;
+
+            // Notify HR Managers
+            const hrManagers = await this.empRoleModel.find({
+                roles: SystemRole.HR_MANAGER,
+                isActive: true
+            }).populate('employeeProfileId');
+
+            for (const record of hrManagers) {
+                if (record.employeeProfileId) {
+                    const hrId = (record.employeeProfileId as any)._id;
+                    await this.notificationService.createNotification(hrId, message);
+                }
+            }
+
+        } catch (error) {
+            console.error("Failed to send change request notifications:", error);
+            // We do not throw here, so the request creation itself remains successful
+        }
+
+        return changeRequest;
     }
 
     async createLegalChangeRequest(employeeNumber: string, dto: CreateLegalChangeRequestDto, user: any) {
@@ -670,7 +786,7 @@ export class EmployeeProfileService {
 
         const requestDescription = `Legal/Marital Status Change Request:\n${changes.join('\n')}`;
 
-        return this.changeReqModel.create({
+        const changeRequest = await this.changeReqModel.create({
             requestId,
             employeeProfileId: employee._id,
             requestDescription,
@@ -678,6 +794,30 @@ export class EmployeeProfileService {
             status: ProfileChangeStatus.PENDING,
             submittedAt: new Date(),
         });
+
+        // NOTIFICATION LOGIC
+        try {
+            const message = `Employee ${employee.firstName} ${employee.lastName} submitted a legal/marital status change request (${requestId}).`;
+
+            // Notify HR Managers
+            const hrManagers = await this.empRoleModel.find({
+                roles: SystemRole.HR_MANAGER,
+                isActive: true
+            }).populate('employeeProfileId');
+
+            for (const record of hrManagers) {
+                if (record.employeeProfileId) {
+                    const hrId = (record.employeeProfileId as any)._id;
+                    await this.notificationService.createNotification(hrId, message);
+                }
+            }
+
+        } catch (error) {
+            console.error("Failed to send legal change request notifications:", error);
+            // We do not throw here, so the request creation itself remains successful
+        }
+
+        return changeRequest;
     }
 
     async getMyChangeRequests(employeeNumber: string, user: any) {
