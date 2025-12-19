@@ -87,7 +87,7 @@ async function main() {
 
   // // Finance Positions
   // const finMgrPosId = '694191cd6b4c02774a830600';
-  // const finEmpPosId = '694191cd6b4c02774a830601';
+  const finEmpPosId = '694191cd6b4c02774a830601';
 
   // const positions = [
   //   { _id: itMgrPosId, title: 'IT Manager', code: 'IT-MGR', departmentId: itDeptId, isActive: true },
@@ -319,18 +319,46 @@ async function main() {
   //   "6941b474fe0b7313027848e5"  // Role ID - Fixed to 24 chars
   // );
 
+  // await createEmployeeWithRole({
+  //   ...commonData,
+  //   firstName: "hr", lastName: "admin",
+  //   nationalId: "28001010000011",
+  //   personalEmail: "hr.admin@personal.com",
+  //   mobilePhone: "01011223337",
+  //   workEmail: "hr.admin@example.com",
+  //   //primaryPositionId: hrMgrPosId,
+  //   primaryDepartmentId: hrDeptId,
+  // }, SystemRole.HR_ADMIN,
+  //   "6941b474fe0b7313027848e6", // Employee ID - Fixed to 24 chars
+  //   "6941b474fe0b7313027848e7"  // Role ID - Fixed to 24 chars
+  // );
+
   await createEmployeeWithRole({
     ...commonData,
-    firstName: "hr", lastName: "admin",
-    nationalId: "28001010000011",
-    personalEmail: "hr.admin@personal.com",
+    firstName: "deactivate", lastName: "one",
+    nationalId: "28001010000015",
+    personalEmail: "deactivate.one@personal.com",
     mobilePhone: "01011223337",
-    workEmail: "hr.admin@example.com",
+    workEmail: "deactivate.one@example.com",
     //primaryPositionId: hrMgrPosId,
-    primaryDepartmentId: hrDeptId,
-  }, SystemRole.HR_ADMIN,
-    "6941b474fe0b7313027848e6", // Employee ID - Fixed to 24 chars
-    "6941b474fe0b7313027848e7"  // Role ID - Fixed to 24 chars
+    //primaryDepartmentId: finEmpPosId,
+  }, SystemRole.DEPARTMENT_EMPLOYEE,
+    "6941b474fe0b6767667848e6", // Employee ID - Fixed to 24 chars
+    "6941b474fe456713027848e7"  // Role ID - Fixed to 24 chars
+  );
+
+  await createEmployeeWithRole({
+    ...commonData,
+    firstName: "deactivate", lastName: "two",
+    nationalId: "28001010000025",
+    personalEmail: "deactivate.two@personal.com",
+    mobilePhone: "01011223337",
+    workEmail: "deactivate.two@example.com",
+    //primaryPositionId: hrMgrPosId,
+    primaryDepartmentId: finEmpPosId,
+  }, SystemRole.DEPARTMENT_EMPLOYEE,
+    "6941b994fe0b6767667848e6", // Employee ID - Fixed to 24 chars
+    "6941b994fe456713027848e7"  // Role ID - Fixed to 24 chars
   );
 
   console.log('Dummy data inserted!');
