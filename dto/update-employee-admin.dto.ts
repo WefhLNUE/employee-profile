@@ -8,9 +8,14 @@ import {
   ContractType,
   EmployeeStatus,
   WorkType,
+  MaritalStatus,
 } from '../enums/employee-profile.enums';
 
 export class UpdateEmployeeAdminDto {
+  @IsOptional() @IsString() firstName?: string;
+  @IsOptional() @IsString() lastName?: string;
+  @IsOptional() @IsEnum(MaritalStatus) maritalStatus?: MaritalStatus;
+
   @IsOptional() @IsDateString() contractStartDate?: string;
   @IsOptional() @IsDateString() contractEndDate?: string;
 

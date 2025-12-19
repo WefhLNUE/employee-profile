@@ -253,6 +253,12 @@ export class EmployeeProfileController {
         return this.svc.createLegalChangeRequest(employeeNumber, dto, req.user);
     }
 
+    @Get(':employeeNumber/my-profile/change-requests')
+    @Roles()
+    getMyChangeRequests(@Param('employeeNumber') employeeNumber: string, @Req() req) {
+        return this.svc.getMyChangeRequests(employeeNumber, req.user);
+    }
+
 
     //------------------------
     // '/employee-profile/:id'

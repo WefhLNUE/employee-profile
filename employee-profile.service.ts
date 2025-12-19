@@ -524,6 +524,19 @@ export class EmployeeProfileService {
         });
     }
 
+    async getMyChangeRequests(employeeNumber: string, user: any) {
+        if (user.employeeNumber !== employeeNumber)
+            throw new ForbiddenException("You can only view your own change requests.");
+
+        const employee = await this.empModel.findOne({ employeeNumber });
+        if (!employee) throw new NotFoundException("Employee not found");
+
+        return this.changeReqModel
+            .find({ employeeProfileId: employee._id })
+            .populate('employeeProfileId')
+            .lean();
+    }
+
 
     async listChangeRequests(user: any) {
         if (user.roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)) {
