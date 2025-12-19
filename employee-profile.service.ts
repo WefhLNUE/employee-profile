@@ -579,6 +579,25 @@ export class EmployeeProfileService {
 
         const { permissions, roles, ...profileData } = dto;
 
+        // Clean up empty strings for ObjectIds to avoid CastError
+        const idFields = [
+            'primaryPositionId',
+            'primaryDepartmentId',
+            'supervisorPositionId',
+            'payGradeId',
+            'lastAppraisalRecordId',
+            'lastAppraisalCycleId',
+            'lastAppraisalTemplateId'
+        ];
+
+        idFields.forEach(field => {
+            if (profileData[field] === '') {
+                profileData[field] = null;
+            } else if (profileData[field] && typeof profileData[field] === 'string' && Types.ObjectId.isValid(profileData[field])) {
+                profileData[field] = new Types.ObjectId(profileData[field]);
+            }
+        });
+
         // Update profile
         const updatedProfile = await this.employeeModel.findByIdAndUpdate(id, profileData, { new: true });
 
