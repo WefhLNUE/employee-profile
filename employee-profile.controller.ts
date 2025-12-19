@@ -93,12 +93,15 @@ export class EmployeeProfileController {
     @Roles(SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.RECRUITER)
     updateCandidateStatus(
         @Param('id') candidateId: string,
-        @Body() updateCandidateStatusDto: UpdateCandidateStatusDto
+        @Body() updateCandidateStatusDto: UpdateCandidateStatusDto,
+        @Req() req
     ) {
         return this.svc.updateCandidateStatus(
             candidateId,
             updateCandidateStatusDto.status,
-            updateCandidateStatusDto.notes
+            updateCandidateStatusDto.notes,
+            req.user?.id,
+            updateCandidateStatusDto.applicationId
         );
     }
 
