@@ -324,7 +324,10 @@ export class EmployeeProfileService {
 
         // HR can see all employees
         if (user.roles.some(r => hrRoles.includes(r))) {
-            return this.empModel.find().lean();
+            return this.empModel.find()
+                .populate('primaryPositionId')
+                .populate('primaryDepartmentId')
+                .lean();
         }
 
         // Department Head → only employees in their department
@@ -335,6 +338,8 @@ export class EmployeeProfileService {
 
             return this.empModel
                 .find({ primaryDepartmentId: user.primaryDepartmentId })
+                .populate('primaryPositionId')
+                .populate('primaryDepartmentId')
                 .lean();
         }
 
@@ -352,7 +357,10 @@ export class EmployeeProfileService {
         if (!Types.ObjectId.isValid(id))
             throw new BadRequestException('Invalid employee ID');
 
-        const emp = await this.empModel.findById(id).lean();
+        const emp = await this.empModel.findById(id)
+            .populate('primaryPositionId')
+            .populate('primaryDepartmentId')
+            .lean();
         if (!emp) throw new NotFoundException('Employee not found');
 
         // ----------------------------
@@ -666,8 +674,12 @@ export class EmployeeProfileService {
             .lean();
         if (!empRole) throw new NotFoundException('Role Connection not found');
         //------------------
-        // access controll
+        // access control
         //------------------
+        const isOwner = req.employeeProfileId?._id
+            ? req.employeeProfileId._id.toString() === user.id
+            : req.employeeProfileId?.toString() === user.id;
+
         if (
             user.roles.includes(SystemRole.HR_MANAGER) ||
             user.roles.includes(SystemRole.HR_ADMIN)
@@ -681,6 +693,13 @@ export class EmployeeProfileService {
                     "You cannot review requests for this employee"
                 );
             }
+        }
+        // Requester can CANCEL their own request
+        else if (isOwner && action === ProfileChangeStatus.CANCELED) {
+            if (req.status !== ProfileChangeStatus.PENDING) {
+                throw new BadRequestException("Only pending requests can be canceled.");
+            }
+            // OK -> continue
         }
         else {
             throw new ForbiddenException("Not allowed");
@@ -718,7 +737,8 @@ export class EmployeeProfileService {
                 primaryDepartmentId: departmentId,
                 employeeNumber: { $ne: user.employeeNumber }   // exclude me
             })
-            .select('firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
+            .populate('primaryPositionId')
+            .populate('primaryDepartmentId')
             .lean();
 
         //--------------------------------------------
