@@ -811,11 +811,30 @@ export class EmployeeProfileService {
 
         //--------------------------------------------
         //IF I WILL REMOVE ME FEL EMPSSSS
-        return this.empModel
-            .find({
-                primaryDepartmentId: departmentId,
-                employeeNumber: { $ne: user.employeeNumber }   // exclude me
-            })
+        const hrRoles = [
+            SystemRole.HR_MANAGER,
+            SystemRole.HR_EMPLOYEE,
+            SystemRole.HR_ADMIN,
+            SystemRole.SYSTEM_ADMIN
+        ];
+
+        // Build base query
+        const baseQuery = this.empModel.find({
+            primaryDepartmentId: departmentId,
+            employeeNumber: { $ne: user.employeeNumber }   // exclude me
+        });
+
+        // Restricted view for Department Heads (unless they also have HR privileges)
+        if (!user.roles.some(r => hrRoles.includes(r))) {
+            return baseQuery
+                .select('firstName lastName employeeNumber workEmail mobilePhone profilePictureUrl status primaryPositionId primaryDepartmentId')
+                .populate('primaryPositionId')
+                .populate('primaryDepartmentId')
+                .lean();
+        }
+
+        // Full view for HR roles
+        return baseQuery
             .populate('primaryPositionId')
             .populate('primaryDepartmentId')
             .lean();
