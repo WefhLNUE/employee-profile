@@ -151,7 +151,9 @@ export class EmployeeProfileController {
     @Roles(
         SystemRole.HR_MANAGER,
         SystemRole.HR_ADMIN,
-        SystemRole.SYSTEM_ADMIN
+        SystemRole.SYSTEM_ADMIN,
+        SystemRole.DEPARTMENT_HEAD
+
     )
     getUniquePermissions() {
         return this.svc.getUniquePermissions();

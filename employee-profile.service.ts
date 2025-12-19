@@ -39,6 +39,9 @@ import { Department } from 'src/organization-structure/Models/department.schema'
 import { Position } from 'src/organization-structure/Models/position.schema';
 import { Application } from 'src/recruitment/Models/application.schema';
 import { ApplicationStatusHistory } from 'src/recruitment/Models/application-history.schema';
+import { AppraisalRecord } from 'src/performance/Models/appraisal-record.schema';
+import { AppraisalTemplate } from 'src/performance/Models/appraisal-template.schema';
+import { AppraisalRecordStatus } from 'src/performance/enums/performance.enums';
 
 
 @Injectable()
@@ -70,6 +73,12 @@ export class EmployeeProfileService {
 
         @InjectModel(ApplicationStatusHistory.name)
         private applicationHistoryModel: Model<ApplicationStatusHistory>,
+
+        @InjectModel(AppraisalRecord.name)
+        private appraisalRecordModel: Model<AppraisalRecord>,
+
+        @InjectModel(AppraisalTemplate.name)
+        private appraisalTemplateModel: Model<AppraisalTemplate>,
     ) { }
 
     private async getNextEmployeeNumber(): Promise<string> {
@@ -360,8 +369,49 @@ export class EmployeeProfileService {
         const emp = await this.empModel.findById(id)
             .populate('primaryPositionId')
             .populate('primaryDepartmentId')
-            .lean();
+            .lean() as any;
         if (!emp) throw new NotFoundException('Employee not found');
+
+        // SYNC LAST APPRAISAL DATA
+        try {
+            const lastAppraisal = await this.appraisalRecordModel
+                .findOne({
+                    employeeProfileId: emp._id,
+                    status: AppraisalRecordStatus.HR_PUBLISHED
+                })
+                .sort({ hrPublishedAt: -1, createdAt: -1 })
+                .lean();
+
+            if (lastAppraisal) {
+                // If the employee record is outdated (or we just want to ensure it's always actively fresh)
+                const updateNeeded = !emp.lastAppraisalRecordId || emp.lastAppraisalRecordId.toString() !== lastAppraisal._id.toString();
+
+                if (true) { // Always sync on fetch for now to be safe
+                    // Get template for scale type
+                    const template = await this.appraisalTemplateModel.findById(lastAppraisal.templateId).lean();
+
+                    const updates: any = {
+                        lastAppraisalRecordId: lastAppraisal._id,
+                        lastAppraisalCycleId: lastAppraisal.cycleId,
+                        lastAppraisalTemplateId: lastAppraisal.templateId,
+                        lastAppraisalDate: lastAppraisal.hrPublishedAt || lastAppraisal.managerSubmittedAt,
+                        lastAppraisalScore: lastAppraisal.totalScore,
+                        lastAppraisalRatingLabel: lastAppraisal.overallRatingLabel,
+                        lastDevelopmentPlanSummary: lastAppraisal.managerSummary, // Using manager summary as plan summary
+                        lastAppraisalScaleType: template?.ratingScale?.type
+                    };
+
+                    // Update DB
+                    await this.empModel.findByIdAndUpdate(emp._id, updates);
+
+                    // Update local object for return
+                    Object.assign(emp, updates);
+                }
+            }
+        } catch (error) {
+            console.error('Error syncing appraisal data in getEmployee:', error);
+            // Don't fail the request, just log
+        }
 
         // ----------------------------
         // ACCESS CONTROL LOGIC
@@ -390,15 +440,18 @@ export class EmployeeProfileService {
             // Must have a department set
             if (!user.primaryDepartmentId || !emp.primaryDepartmentId) {
                 // If the user or target emp has no dept, we can't verify 'same dept' logic
-                // If it's your own profile, arguably you should see it, but here we enforce dept match.
-                // Or maybe checks if (user.id === emp._id.toString())
             }
+
+            // Handle populated department object
+            const empDeptId = (emp.primaryDepartmentId as any)?._id
+                ? (emp.primaryDepartmentId as any)._id.toString()
+                : emp.primaryDepartmentId?.toString();
 
             // Only view employees in YOUR department
             if (
                 user.primaryDepartmentId &&
-                emp.primaryDepartmentId &&
-                emp.primaryDepartmentId.toString() === user.primaryDepartmentId.toString()
+                empDeptId &&
+                empDeptId === user.primaryDepartmentId.toString()
             ) {
                 return {
                     ...emp,
@@ -424,10 +477,34 @@ export class EmployeeProfileService {
             if (!user.primaryDepartmentId)
                 throw new ForbiddenException("Your department is not set.");
 
+            // Handle populated department object
+            const empDeptId = (emp.primaryDepartmentId as any)?._id
+                ? (emp.primaryDepartmentId as any)._id.toString()
+                : emp.primaryDepartmentId?.toString();
+
+            console.log('--- DEBUG DEPT HEAD ACCESS ---');
+            console.log('User Roles:', user.roles);
+            console.log('User Dept ID:', user.primaryDepartmentId);
+            console.log('Target Emp ID:', emp._id);
+            console.log('Target Emp Dept ID (Raw):', emp.primaryDepartmentId);
+            console.log('Target Emp Dept ID (Resolved):', empDeptId);
+            console.log('Comparison:', empDeptId, '===', user.primaryDepartmentId?.toString());
+            console.log('------------------------------');
+
+            // Fallback: if it is literally ME
+            if (user.id === emp._id.toString()) {
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                    permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+                };
+            }
+
             // Can view if in same department
             if (
-                emp.primaryDepartmentId &&
-                emp.primaryDepartmentId.toString() === user.primaryDepartmentId.toString()
+                empDeptId &&
+                empDeptId === user.primaryDepartmentId.toString()
             ) {
                 return {
                     ...emp,

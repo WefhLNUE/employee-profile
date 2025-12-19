@@ -18,6 +18,8 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthModule } from 'src/auth/auth.module';
 import { Department, DepartmentSchema } from 'src/organization-structure/Models/department.schema';
 import { Position, PositionSchema } from 'src/organization-structure/Models/position.schema';
+import { AppraisalRecord, AppraisalRecordSchema } from 'src/performance/Models/appraisal-record.schema';
+import { AppraisalTemplate, AppraisalTemplateSchema } from 'src/performance/Models/appraisal-template.schema';
 
 @Module({
   imports: [
@@ -26,7 +28,7 @@ import { Position, PositionSchema } from 'src/organization-structure/Models/posi
       { name: Candidate.name, schema: CandidateSchema },
       { name: EmployeeProfile.name, schema: EmployeeProfileSchema },
       { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
-      { name: Department.name, schema: DepartmentSchema},
+      { name: Department.name, schema: DepartmentSchema },
       { name: Position.name, schema: PositionSchema },
       {
         name: EmployeeProfileChangeRequest.name,
@@ -36,6 +38,8 @@ import { Position, PositionSchema } from 'src/organization-structure/Models/posi
       { name: EmployeeQualification.name, schema: EmployeeQualificationSchema },
       { name: ApplicationStatusHistory.name, schema: ApplicationStatusHistorySchema },
       { name: Application.name, schema: ApplicationSchema },
+      { name: AppraisalRecord.name, schema: AppraisalRecordSchema },
+      { name: AppraisalTemplate.name, schema: AppraisalTemplateSchema },
     ]),
   ],
   controllers: [EmployeeProfileController],
@@ -44,4 +48,4 @@ import { Position, PositionSchema } from 'src/organization-structure/Models/posi
   // ✅ FIX: Export the service so AuthModule can use it
   exports: [EmployeeProfileService],
 })
-export class EmployeeProfileModule {}
+export class EmployeeProfileModule { }
