@@ -76,7 +76,11 @@ export class EmployeeProfileController {
         console.log('req.user._id:', req.user.id);
 
         const roles = await this.svc.getMyRoles(employeeId);
-        return { roles }; // returns JSON like { roles: ['HR_MANAGER', 'SYSTEM_ADMIN'] }
+        return {
+            roles,
+            employeeNumber: req.user.employeeNumber,
+            primaryDepartmentId: req.user.primaryDepartmentId
+        };
     }
 
     // @Get(':id')
@@ -164,9 +168,10 @@ export class EmployeeProfileController {
     //---------------------------------
     @Get('my-employees')
     @Roles(SystemRole.DEPARTMENT_HEAD)
-    getEmployeesInMyDepartment(@Req() req) {
-        console.log("alooooooooooooooo", req.user._id)
-        return this.svc.getEmployeesInDepartment(req.user.primaryDepartmentId, req.user);
+    async getEmployeesInMyDepartment(@Req() req) {
+        // Fetch fresh profile to get current department, in case token is stale
+        const profile = await this.svc.getEmployeeById(req.user.id, req.user);
+        return this.svc.getEmployeesInDepartment((profile.primaryDepartmentId?._id?.toString() || profile.primaryDepartmentId?.toString() || ''), req.user);
     }
 
     //-------------------------------------
@@ -199,7 +204,8 @@ export class EmployeeProfileController {
     @Roles(
         SystemRole.HR_MANAGER,
         SystemRole.HR_ADMIN,
-        SystemRole.HR_EMPLOYEE
+        SystemRole.HR_EMPLOYEE,
+        SystemRole.DEPARTMENT_EMPLOYEE
     )
     reviewCR(
         @Param('requestId') requestId: string,
@@ -301,5 +307,14 @@ export class EmployeeProfileController {
         @Req() req
     ) {
         return this.svc.deactivateEmployee(id, status, req.user);
+    }
+
+    @Patch(':id/reactivate')
+    @Roles(SystemRole.HR_ADMIN)
+    reactivateEmployee(
+        @Param('id') id: string,
+        @Req() req
+    ) {
+        return this.svc.reactivateEmployee(id, req.user);
     }
 }

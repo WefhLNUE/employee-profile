@@ -262,7 +262,10 @@ export class EmployeeProfileService {
             });
     }
     async getMyProfile(employeeNumber: string, user: any) {
-        const employee = await this.empModel.findOne({ employeeNumber });
+        const employee = await this.empModel.findOne({ employeeNumber })
+            .populate('primaryPositionId')
+            .populate('primaryDepartmentId')
+            .lean();
         if (!employee) throw new NotFoundException("Employee not found");
 
         if (user.employeeNumber !== employeeNumber)
@@ -340,10 +343,18 @@ export class EmployeeProfileService {
                 .lean();
         }
 
-        // Department Head → only employees in their department
-        if (user.roles.includes(SystemRole.DEPARTMENT_HEAD)) {
+        // Department Head or Department Employee → only employees in their department
+        if (
+            user.roles.includes(SystemRole.DEPARTMENT_HEAD)
+        ) {
             if (!user.primaryDepartmentId) {
-                throw new ForbiddenException("Your department is not set.");
+                // If they have no department, they can only see themselves (or nothing)
+                // Returning just themselves for consistency
+                return this.empModel
+                    .find({ employeeNumber: user.employeeNumber })
+                    .populate('primaryPositionId')
+                    .populate('primaryDepartmentId')
+                    .lean();
             }
 
             return this.empModel
@@ -352,11 +363,6 @@ export class EmployeeProfileService {
                 .populate('primaryDepartmentId')
                 .lean();
         }
-
-        // // Department Employee should NOT access this list
-        // if (user.roles === SystemRole.DEPARTMENT_EMPLOYEE) {
-        //     throw new ForbiddenException("You are not allowed to view all employees.");
-        // }
 
         throw new ForbiddenException("You are not allowed to view this resource.");
     }
@@ -778,7 +784,17 @@ export class EmployeeProfileService {
             ? req.employeeProfileId._id.toString() === user.id
             : req.employeeProfileId?.toString() === user.id;
 
-        if (
+        // Requester can CANCEL their own request
+        if (action === ProfileChangeStatus.CANCELED) {
+            if (!isOwner) {
+                throw new ForbiddenException("Only the requester can cancel this request.");
+            }
+            if (req.status !== ProfileChangeStatus.PENDING) {
+                throw new BadRequestException("Only pending requests can be canceled.");
+            }
+            // OK -> continue to actual update
+        }
+        else if (
             user.roles.includes(SystemRole.HR_MANAGER) ||
             user.roles.includes(SystemRole.HR_ADMIN)
         ) {
@@ -791,13 +807,6 @@ export class EmployeeProfileService {
                     "You cannot review requests for this employee"
                 );
             }
-        }
-        // Requester can CANCEL their own request
-        else if (isOwner && action === ProfileChangeStatus.CANCELED) {
-            if (req.status !== ProfileChangeStatus.PENDING) {
-                throw new BadRequestException("Only pending requests can be canceled.");
-            }
-            // OK -> continue
         }
         else {
             throw new ForbiddenException("Not allowed");
@@ -818,18 +827,26 @@ export class EmployeeProfileService {
             );
         }
 
-        const reqUpdated = await this.changeReqModel.findOne({ requestId }).lean();
+        const reqUpdated = await this.changeReqModel.findOne({ requestId }).populate('employeeProfileId').lean();
         return reqUpdated;
     }
 
     async getEmployeesInDepartment(departmentId: string, user: any) {
-        console.log("Department ID from logged in user:", departmentId);
+        console.log(`[getEmployeesInDepartment] DeptID: '${departmentId}' (${typeof departmentId})`);
+        console.log(`[getEmployeesInDepartment] User: ${user.employeeNumber}`);
+
         if (!departmentId) {
-            throw new ForbiddenException("Department ID missing from token.");
+            console.error('[getEmployeesInDepartment] Department ID missing from token/profile.');
+            throw new ForbiddenException("Department ID missing.");
         }
 
-        //--------------------------------------------
-        //IF I WILL REMOVE ME FEL EMPSSSS
+        let deptObjectId: Types.ObjectId | null = null;
+        try {
+            deptObjectId = new Types.ObjectId(departmentId);
+        } catch (e) {
+            console.warn('[getEmployeesInDepartment] Provided ID is not a valid ObjectId:', departmentId);
+        }
+
         const hrRoles = [
             SystemRole.HR_MANAGER,
             SystemRole.HR_EMPLOYEE,
@@ -837,11 +854,23 @@ export class EmployeeProfileService {
             SystemRole.SYSTEM_ADMIN
         ];
 
+        // Build query to be robust against string vs ObjectId mismatch
+        const query: any = {
+            $or: [
+                { primaryDepartmentId: departmentId }
+            ],
+            employeeNumber: { $ne: user.employeeNumber },
+            status: EmployeeStatus.ACTIVE
+        };
+
+        if (deptObjectId) {
+            query.$or.push({ primaryDepartmentId: deptObjectId });
+        }
+
+        console.log('[getEmployeesInDepartment] Query Filter:', JSON.stringify(query));
+
         // Build base query
-        const baseQuery = this.empModel.find({
-            primaryDepartmentId: departmentId,
-            employeeNumber: { $ne: user.employeeNumber }   // exclude me
-        });
+        const baseQuery = this.empModel.find(query);
 
         // Restricted view for Department Heads (unless they also have HR privileges)
         if (!user.roles.some(r => hrRoles.includes(r))) {
@@ -924,4 +953,34 @@ export class EmployeeProfileService {
         };
     }
 
+    async reactivateEmployee(id: string, user: any) {
+        if (!Types.ObjectId.isValid(id))
+            throw new BadRequestException('Invalid employee ID');
+
+        const emp = await this.empModel.findById(id);
+        if (!emp) throw new NotFoundException('Employee not found');
+
+        if (emp.status === EmployeeStatus.ACTIVE) {
+            throw new BadRequestException('Employee is already active');
+        }
+
+        // 1. Update Employee Profile Status
+        emp.status = EmployeeStatus.ACTIVE;
+        emp.statusEffectiveFrom = new Date();
+        await emp.save();
+
+        // 2. Restore System Access (isActive = true)
+        await this.empRoleModel.findOneAndUpdate(
+            { employeeProfileId: emp._id },
+            { isActive: true },
+            { new: true }
+        );
+
+        console.log(`[Reactivate] Employee ${emp.employeeNumber} reactivated by ${user.employeeNumber}. Access Restored.`);
+
+        return {
+            message: 'Employee reactivated successfully',
+            employee: emp
+        };
+    }
 }

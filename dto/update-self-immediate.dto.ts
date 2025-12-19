@@ -10,6 +10,9 @@ export class UpdateEmployeeSelfImmediateDto {
   @IsOptional() @IsString()
   biography?: string;
 
+  @IsOptional() @IsString()
+  profilePictureUrl?: string;
+
   @IsOptional()
   @IsObject()
   address?: {
