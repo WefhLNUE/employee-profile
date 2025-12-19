@@ -22,6 +22,7 @@ import {
     ProfileChangeStatus,
     SystemRole,
     CandidateStatus,
+    EmployeeStatus
 } from './enums/employee-profile.enums';
 
 //DTOS
@@ -423,7 +424,8 @@ export class EmployeeProfileService {
             SystemRole.HR_ADMIN,
             SystemRole.SYSTEM_ADMIN
         ];
-        const roleRecord = await this.empRoleModel.findOne({ employeeProfileId: emp._id, isActive: true }).lean();
+        // Fetch role record regardless of active status so admins can see/restore roles
+        const roleRecord = await this.empRoleModel.findOne({ employeeProfileId: emp._id }).lean();
 
         // Check if user has ANY of the hr roles
         if (user.roles.some(r => hrRoles.includes(r))) {
@@ -843,6 +845,45 @@ export class EmployeeProfileService {
 
     async getUniquePermissions(): Promise<string[]> {
         return this.empRoleModel.distinct('permissions');
+    }
+
+    async deactivateEmployee(id: string, status: EmployeeStatus, user: any) {
+        if (!Types.ObjectId.isValid(id))
+            throw new BadRequestException('Invalid employee ID');
+
+        // Validate Status - must be an inactive status
+        const inactiveStatuses = [
+            EmployeeStatus.TERMINATED,
+            EmployeeStatus.RETIRED,
+            EmployeeStatus.INACTIVE,
+            EmployeeStatus.SUSPENDED // Maybe? Let's include it.
+        ];
+
+        if (!inactiveStatuses.includes(status)) {
+            throw new BadRequestException(`Invalid deactivation status. Must be one of: ${inactiveStatuses.join(', ')}`);
+        }
+
+        const emp = await this.empModel.findById(id);
+        if (!emp) throw new NotFoundException('Employee not found');
+
+        // 1. Update Employee Profile Status
+        emp.status = status;
+        emp.statusEffectiveFrom = new Date();
+        await emp.save();
+
+        // 2. Disable System Access (isActive = false)
+        await this.empRoleModel.findOneAndUpdate(
+            { employeeProfileId: emp._id },
+            { isActive: false },
+            { new: true }
+        );
+
+        console.log(`[Deactivate] Employee ${emp.employeeNumber} deactivated by ${user.employeeNumber}. Status: ${status}, Access Revoked.`);
+
+        return {
+            message: 'Employee deactivated successfully',
+            employee: emp
+        };
     }
 
 }

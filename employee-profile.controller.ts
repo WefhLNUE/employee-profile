@@ -293,5 +293,13 @@ export class EmployeeProfileController {
         return this.svc.updateEmployeeAdmin(id, dto, req.user);
     }
 
-
+    @Patch(':id/deactivate')
+    @Roles(SystemRole.HR_ADMIN)
+    deactivateEmployee(
+        @Param('id') id: string,
+        @Body('status') status: any,
+        @Req() req
+    ) {
+        return this.svc.deactivateEmployee(id, status, req.user);
+    }
 }
