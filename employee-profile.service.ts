@@ -152,6 +152,64 @@ export class EmployeeProfileService {
         throw new ForbiddenException("You are not allowed to view this resource.");
     }
 
+    // Internal method - no access control, for system use only
+    async getEmployeeById(id: string) {
+        if (!Types.ObjectId.isValid(id))
+            throw new BadRequestException('Invalid employee ID');
+
+        console.log('🔍 [getEmployeeById] Looking up employee with ID:', id);
+
+        const employee = await this.empModel.findById(id).lean();
+
+        if (!employee) {
+            console.log('❌ [getEmployeeById] Employee not found');
+            return null;
+        }
+
+        console.log('🔍 [getEmployeeById] Employee found:', employee.workEmail);
+
+        // Fetch roles from EmployeeSystemRole collection
+        const roleRecord = await this.empRoleModel
+            .findOne({ employeeProfileId: id, isActive: true })
+            .lean()
+            .exec();
+
+        console.log('🔍 [getEmployeeById] Role record lookup result:', {
+            found: !!roleRecord,
+            roles: roleRecord?.roles || [],
+            permissions: roleRecord?.permissions || [],
+            isActive: roleRecord?.isActive,
+        });
+
+        // Also try with ObjectId conversion
+        if (!roleRecord) {
+            const roleRecordWithObjectId = await this.empRoleModel
+                .findOne({ employeeProfileId: new Types.ObjectId(id), isActive: true })
+                .lean()
+                .exec();
+
+            console.log('🔍 [getEmployeeById] Role record lookup with ObjectId conversion:', {
+                found: !!roleRecordWithObjectId,
+                roles: roleRecordWithObjectId?.roles || [],
+            });
+
+            if (roleRecordWithObjectId) {
+                return {
+                    ...employee,
+                    roles: roleRecordWithObjectId.roles || [],
+                    permissions: roleRecordWithObjectId.permissions || [],
+                };
+            }
+        }
+
+        // Attach roles and permissions to the employee object
+        return {
+            ...employee,
+            roles: roleRecord?.roles || [],
+            permissions: roleRecord?.permissions || [],
+        };
+    }
+
     async getEmployee(id: string, user: any) {
         if (!Types.ObjectId.isValid(id))
             throw new BadRequestException('Invalid employee ID');
