@@ -174,6 +174,34 @@ export class EmployeeProfileService {
             .select('_id firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
             .lean();
     }
+
+    async getSupervisors(user: any) {
+        // Get employees who are department heads or HR managers
+        const supervisorRoles = [
+            SystemRole.DEPARTMENT_HEAD,
+            SystemRole.HR_MANAGER,
+            SystemRole.HR_ADMIN,
+        ];
+
+        const roleRecords = await this.empRoleModel
+            .find({ roles: { $in: supervisorRoles }, isActive: true })
+            .populate('employeeProfileId')
+            .lean()
+            .exec();
+
+        return roleRecords
+            .filter(r => r.employeeProfileId)
+            .map(r => {
+                const emp = r.employeeProfileId as any;
+                return {
+                    _id: emp._id,
+                    firstName: emp.firstName,
+                    lastName: emp.lastName,
+                    employeeNumber: emp.employeeNumber,
+                    primaryPositionId: emp.primaryPositionId,
+                };
+            });
+    }
     async getMyProfile(employeeNumber: string, user: any) {
         const employee = await this.empModel.findOne({ employeeNumber });
         if (!employee) throw new NotFoundException("Employee not found");
@@ -218,7 +246,15 @@ export class EmployeeProfileService {
             }
         }
 
-        return employee;
+        // Fetch permissions and roles
+        const roleRecord = await this.empRoleModel.findOne({ employeeProfileId: employee._id, isActive: true }).lean() as any;
+
+        return {
+            ...employee,
+            permissions: roleRecord?.permissions || [],
+            roles: roleRecord?.roles || [],
+            permissionsLastUpdated: roleRecord?.updatedAt,
+        };
     }
 
 
@@ -285,10 +321,16 @@ export class EmployeeProfileService {
             SystemRole.HR_ADMIN,
             SystemRole.SYSTEM_ADMIN
         ];
+        const roleRecord = await this.empRoleModel.findOne({ employeeProfileId: emp._id, isActive: true }).lean();
 
         // Check if user has ANY of the hr roles
         if (user.roles.some(r => hrRoles.includes(r))) {
-            return emp;
+            return {
+                ...emp,
+                permissions: roleRecord?.permissions || [],
+                roles: roleRecord?.roles || [],
+                permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+            };
         }
 
         // Check for DEPARTMENT_EMPLOYEE
@@ -306,13 +348,22 @@ export class EmployeeProfileService {
                 emp.primaryDepartmentId &&
                 emp.primaryDepartmentId.toString() === user.primaryDepartmentId.toString()
             ) {
-                return emp;
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                    permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+                };
             }
 
             // Fallback: if it is literally ME
             // user.id usually comes from JWT payload.id (or _id)
             if (user.id === emp._id.toString()) {
-                return emp;
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                };
             }
         }
 
@@ -326,7 +377,12 @@ export class EmployeeProfileService {
                 emp.primaryDepartmentId &&
                 emp.primaryDepartmentId.toString() === user.primaryDepartmentId.toString()
             ) {
-                return emp;
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                    permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+                };
             }
         }
 
@@ -390,7 +446,25 @@ export class EmployeeProfileService {
         if (!Types.ObjectId.isValid(id))
             throw new BadRequestException('Invalid employee ID');
 
-        return this.employeeModel.findByIdAndUpdate(id, dto, { new: true });
+        const { permissions, roles, ...profileData } = dto;
+
+        // Update profile
+        const updatedProfile = await this.employeeModel.findByIdAndUpdate(id, profileData, { new: true });
+
+        // Update permissions/roles if provided
+        if (permissions !== undefined || roles !== undefined) {
+            const updateData: any = { isActive: true };
+            if (permissions !== undefined) updateData.permissions = permissions;
+            if (roles !== undefined) updateData.roles = roles;
+
+            await this.empRoleModel.findOneAndUpdate(
+                { employeeProfileId: new Types.ObjectId(id) },
+                updateData,
+                { upsert: true }
+            );
+        }
+
+        return updatedProfile;
     }
 
     // ----------------------------- //
@@ -612,5 +686,9 @@ export class EmployeeProfileService {
 
     }
 
+
+    async getUniquePermissions(): Promise<string[]> {
+        return this.empRoleModel.distinct('permissions');
+    }
 
 }

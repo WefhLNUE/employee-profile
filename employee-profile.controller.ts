@@ -132,6 +132,28 @@ export class EmployeeProfileController {
         return this.svc.getAllEmployeesForSelection(req.user);
     }
 
+    // Get all supervisors (department heads, HR managers) for supervisor selection
+    @Get('supervisors')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.HR_EMPLOYEE,
+        SystemRole.SYSTEM_ADMIN
+    )
+    getSupervisors(@Req() req) {
+        return this.svc.getSupervisors(req.user);
+    }
+
+    @Get('unique-permissions')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.SYSTEM_ADMIN
+    )
+    getUniquePermissions() {
+        return this.svc.getUniquePermissions();
+    }
+
     //---------------------------------
     // '/employee-profile/my-employees'
     //---------------------------------
