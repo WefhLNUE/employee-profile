@@ -25,4 +25,6 @@ export class UpdateEmployeeAdminDto {
   @IsOptional() @IsString() supervisorPositionId?: string;
 
   @IsOptional() @IsString() payGradeId?: string;
+  @IsOptional() @IsString({ each: true }) permissions?: string[];
+  @IsOptional() @IsString({ each: true }) roles?: string[];
 }

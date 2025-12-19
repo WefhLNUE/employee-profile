@@ -1,26 +1,27 @@
 import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ForbiddenException 
+    Injectable,
+    NotFoundException,
+    BadRequestException,
+    ForbiddenException,
+    InternalServerErrorException
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 
 //SCHEMAS AND ENUMS
 import {
-  EmployeeProfile,
-  EmployeeProfileDocument,
+    EmployeeProfile,
+    EmployeeProfileDocument,
 } from './Models/employee-profile.schema';
 
 import {
-  EmployeeProfileChangeRequest,
+    EmployeeProfileChangeRequest,
 } from './Models/ep-change-request.schema';
 
 import {
-  ProfileChangeStatus,
-  SystemRole,
-  CandidateStatus,
+    ProfileChangeStatus,
+    SystemRole,
+    CandidateStatus,
 } from './enums/employee-profile.enums';
 
 //DTOS
@@ -28,6 +29,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+import { CreateLegalChangeRequestDto } from './dto/create-legal-change-request.dto';
 import { Counter } from './Models/counter.schema';
 import { Candidate } from './Models/candidate.schema';
 import { RegisterEmployeeDto } from './dto/register-employee.dto';
@@ -72,9 +74,9 @@ export class EmployeeProfileService {
 
     private async getNextEmployeeNumber(): Promise<string> {
         const counter = await this.counterModel.findOneAndUpdate(
-        { name: 'employeeNumber' },
-        { $inc: { value: 1 } },
-        { new: true, upsert: true }
+            { name: 'employeeNumber' },
+            { $inc: { value: 1 } },
+            { new: true, upsert: true }
         );
 
         const number = counter.value + 1000; // 1001, 1002, 1003...
@@ -84,7 +86,7 @@ export class EmployeeProfileService {
     // ----------------------------- //
     //         EMPLOYEE CRUD         //
     // ----------------------------- //
-    
+
     async createEmployee(dto: RegisterEmployeeDto) {
         const employeeNumber = await this.getNextEmployeeNumber();
 
@@ -221,32 +223,106 @@ export class EmployeeProfileService {
             .select('_id firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
             .lean();
     }
+
+    async getSupervisors(user: any) {
+        // Get employees who are department heads or HR managers
+        const supervisorRoles = [
+            SystemRole.DEPARTMENT_HEAD,
+            SystemRole.HR_MANAGER,
+            SystemRole.HR_ADMIN,
+        ];
+
+        const roleRecords = await this.empRoleModel
+            .find({ roles: { $in: supervisorRoles }, isActive: true })
+            .populate('employeeProfileId')
+            .lean()
+            .exec();
+
+        return roleRecords
+            .filter(r => r.employeeProfileId)
+            .map(r => {
+                const emp = r.employeeProfileId as any;
+                return {
+                    _id: emp._id,
+                    firstName: emp.firstName,
+                    lastName: emp.lastName,
+                    employeeNumber: emp.employeeNumber,
+                    primaryPositionId: emp.primaryPositionId,
+                };
+            });
+    }
     async getMyProfile(employeeNumber: string, user: any) {
         const employee = await this.empModel.findOne({ employeeNumber });
         if (!employee) throw new NotFoundException("Employee not found");
 
-        if(user.employeeNumber !== employeeNumber)
+        if (user.employeeNumber !== employeeNumber)
             throw new ForbiddenException("You can only view your own profile.");
         return employee;
     }
 
+    // async getEmployeeById(employeeId: string) {
+    //     if (!Types.ObjectId.isValid(employeeId))
+    //         throw new BadRequestException('Invalid employee ID');
+    //     const employee = await this.empModel.findById(employeeId).lean();
+    //     if (!employee) throw new NotFoundException("Employee not found");
+    //     return employee;
+    // }
+    async getEmployeeById(employeeId: string, user: any) {
+        if (!Types.ObjectId.isValid(employeeId)) {
+            throw new BadRequestException('Invalid employee ID');
+        }
 
-async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
-  const id = typeof employeeId === 'string' ? new Types.ObjectId(employeeId) : employeeId;
+        const employee = await this.empModel.findById(employeeId).lean();
 
-  console.log('Querying roles for employeeProfileId:', id);
+        if (!employee) {
+            throw new NotFoundException('Employee not found');
+        }
 
-  const record = await this.empRoleModel.findOne({ employeeProfileId: id, isActive: true }).exec();
+        // Department Head access control
+        if (user.roles?.includes(SystemRole.DEPARTMENT_HEAD)) {
+            if (!user.primaryDepartmentId) {
+                throw new ForbiddenException('Your department is not set.');
+            }
 
-  console.log('Found record:', record);
+            if (
+                !employee.primaryDepartmentId ||
+                employee.primaryDepartmentId.toString() !==
+                user.primaryDepartmentId.toString()
+            ) {
+                throw new ForbiddenException(
+                    'You are not allowed to access employees outside your department.'
+                );
+            }
+        }
 
-  return record?.roles || [];
-}
+        // Fetch permissions and roles
+        const roleRecord = await this.empRoleModel.findOne({ employeeProfileId: employee._id, isActive: true }).lean() as any;
+
+        return {
+            ...employee,
+            permissions: roleRecord?.permissions || [],
+            roles: roleRecord?.roles || [],
+            permissionsLastUpdated: roleRecord?.updatedAt,
+        };
+    }
+
+
+    async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
+        const id = typeof employeeId === 'string' ? new Types.ObjectId(employeeId) : employeeId;
+
+        console.log('Querying roles for employeeProfileId:', id);
+
+        const record = await this.empRoleModel.findOne({ employeeProfileId: id, isActive: true }).exec();
+
+        console.log('Found record:', record);
+
+        return record?.roles || [];
+    }
 
 
     async getAllEmployees(user: any) {
         // return this.empModel.find().lean();
-            const hrRoles = [
+        const hrRoles = [
             SystemRole.HR_MANAGER,
             SystemRole.HR_EMPLOYEE,
             SystemRole.HR_ADMIN,
@@ -294,30 +370,72 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
             SystemRole.HR_ADMIN,
             SystemRole.SYSTEM_ADMIN
         ];
+        const roleRecord = await this.empRoleModel.findOne({ employeeProfileId: emp._id, isActive: true }).lean();
 
-        if (hrRoles.includes(user.role)) {
-            return emp;
+        // Check if user has ANY of the hr roles
+        if (user.roles.some(r => hrRoles.includes(r))) {
+            return {
+                ...emp,
+                permissions: roleRecord?.permissions || [],
+                roles: roleRecord?.roles || [],
+                permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+            };
         }
 
-        if (user.role === SystemRole.DEPARTMENT_EMPLOYEE) {
+        // Check for DEPARTMENT_EMPLOYEE
+        if (user.roles.includes(SystemRole.DEPARTMENT_EMPLOYEE)) {
+            // Must have a department set
             if (!user.primaryDepartmentId || !emp.primaryDepartmentId) {
+                // If the user or target emp has no dept, we can't verify 'same dept' logic
+                // If it's your own profile, arguably you should see it, but here we enforce dept match.
+                // Or maybe checks if (user.id === emp._id.toString())
+            }
+
+            // Only view employees in YOUR department
+            if (
+                user.primaryDepartmentId &&
+                emp.primaryDepartmentId &&
+                emp.primaryDepartmentId.toString() === user.primaryDepartmentId.toString()
+            ) {
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                    permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+                };
+            }
+
+            // Fallback: if it is literally ME
+            // user.id usually comes from JWT payload.id (or _id)
+            if (user.id === emp._id.toString()) {
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                };
+            }
+        }
+
+        // Check for DEPARTMENT_HEAD
+        if (user.roles.includes(SystemRole.DEPARTMENT_HEAD)) {
+            if (!user.primaryDepartmentId)
                 throw new ForbiddenException("Your department is not set.");
-            }
-            if (emp.primaryDepartmentId.toString() !== user.primaryDepartmentId.toString()){
-                throw new ForbiddenException(
-                    "You can only view employees in your department."
-                );
+
+            // Can view if in same department
+            if (
+                emp.primaryDepartmentId &&
+                emp.primaryDepartmentId.toString() === user.primaryDepartmentId.toString()
+            ) {
+                return {
+                    ...emp,
+                    permissions: roleRecord?.permissions || [],
+                    roles: roleRecord?.roles || [],
+                    permissionsLastUpdated: (roleRecord as any)?.updatedAt,
+                };
             }
         }
 
-        if (user.role === SystemRole.DEPARTMENT_HEAD) {
-            if (!user.primaryDepartmentId || !emp.primaryDepartmentId)
-                throw new ForbiddenException("Missing department assignment");
-
-            if (emp.primaryDepartmentId.toString() !== user.primaryDepartmentId.toString())
-                throw new ForbiddenException("You can only view employees in your department");
-        }
-        return emp;
+        throw new ForbiddenException("You are not allowed to view this employee.");
     }
 
     async updateEmployeeSelfImmediate(
@@ -327,7 +445,7 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
     ) {
         const employee = await this.empModel.findOne({ employeeNumber });
         if (!employee) throw new NotFoundException("Employee not found");
-        
+
         if (user.employeeNumber !== employeeNumber)
             throw new ForbiddenException("You can only update your own profile.");
 
@@ -374,19 +492,37 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
 
 
     async updateEmployeeAdmin(id: string, dto: UpdateEmployeeAdminDto, user: any) {
-    if (!Types.ObjectId.isValid(id))
-        throw new BadRequestException('Invalid employee ID');
+        if (!Types.ObjectId.isValid(id))
+            throw new BadRequestException('Invalid employee ID');
 
-    return this.employeeModel.findByIdAndUpdate(id, dto, { new: true });
-}
+        const { permissions, roles, ...profileData } = dto;
+
+        // Update profile
+        const updatedProfile = await this.employeeModel.findByIdAndUpdate(id, profileData, { new: true });
+
+        // Update permissions/roles if provided
+        if (permissions !== undefined || roles !== undefined) {
+            const updateData: any = { isActive: true };
+            if (permissions !== undefined) updateData.permissions = permissions;
+            if (roles !== undefined) updateData.roles = roles;
+
+            await this.empRoleModel.findOneAndUpdate(
+                { employeeProfileId: new Types.ObjectId(id) },
+                updateData,
+                { upsert: true }
+            );
+        }
+
+        return updatedProfile;
+    }
 
     // ----------------------------- //
     //     PROFILE CHANGE REQUESTS   //
     // ----------------------------- //
 
-    async createChangeRequest(employeeNumber: string, dto: CreateEmployeeChangeRequestDto,user:any) {
+    async createChangeRequest(employeeNumber: string, dto: CreateEmployeeChangeRequestDto, user: any) {
         //debug
-        console.log("logged in emp no: " , user.employeeNumber)
+        console.log("logged in emp no: ", user.employeeNumber)
         console.log("in url emp no:", employeeNumber);
         console.log("equal?", user.employeeNumber === employeeNumber);
 
@@ -410,14 +546,42 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
         });
     }
 
-    async listChangeRequests(user:any) {
-        if(user.roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)){
+    async createLegalChangeRequest(employeeNumber: string, dto: CreateLegalChangeRequestDto, user: any) {
+        if (user.employeeNumber !== employeeNumber)
+            throw new ForbiddenException("You can only submit change requests for yourself.");
+
+        const employee = await this.empModel.findOne({ employeeNumber });
+        if (!employee) throw new NotFoundException("Employee not found");
+
+        const requestId = `LEGAL-REQ-${Date.now()}`;
+
+        // Build description from the requested changes
+        const changes: string[] = [];
+        if (dto.newLegalFirstName) changes.push(`Legal First Name: ${dto.newLegalFirstName}`);
+        if (dto.newLegalLastName) changes.push(`Legal Last Name: ${dto.newLegalLastName}`);
+        if (dto.newMaritalStatus) changes.push(`Marital Status: ${dto.newMaritalStatus}`);
+
+        const requestDescription = `Legal/Marital Status Change Request:\n${changes.join('\n')}`;
+
+        return this.changeReqModel.create({
+            requestId,
+            employeeProfileId: employee._id,
+            requestDescription,
+            reason: dto.reason,
+            status: ProfileChangeStatus.PENDING,
+            submittedAt: new Date(),
+        });
+    }
+
+
+    async listChangeRequests(user: any) {
+        if (user.roles.includes(SystemRole.HR_MANAGER) || user.roles.includes(SystemRole.HR_ADMIN)) {
             return this.changeReqModel
                 .find()
                 .populate('employeeProfileId')
                 .lean();
         }
-        if(user.roles.includes(SystemRole.HR_EMPLOYEE)){
+        if (user.roles.includes(SystemRole.HR_EMPLOYEE)) {
             return this.changeReqModel
                 .find()
                 .populate({
@@ -431,28 +595,46 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
     }
 
     async getChangeRequestById(requestId: string, user: any) {
+        console.log(`[getChangeRequestById] RequestID: ${requestId}, User:`, user);
+
+        if (!user) {
+            console.error('[getChangeRequestById] User object is missing!');
+            throw new InternalServerErrorException('User context missing');
+        }
+
         // Fetch the request and populate employee info
         const request = await this.changeReqModel
-        .findOne({ requestId })
-        .populate('employeeProfileId')
-        .lean();
+            .findOne({ requestId })
+            .populate('employeeProfileId')
+            .lean();
+
+        console.log('[getChangeRequestById] Fetched Request:', request ? 'Found' : 'Not Found');
+        if (request) {
+            console.log('[getChangeRequestById] EmployeeProfileId:', request.employeeProfileId);
+        }
 
         if (!request) throw new NotFoundException('Change request not found');
 
         // Access control: HR roles can access any request
         const allowedHrRoles = [SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.HR_EMPLOYEE];
+        const userRoles = user.roles || [];
 
-        if (allowedHrRoles.some(role => user.roles.includes(role))) {
-        return request;
+        if (allowedHrRoles.some(role => userRoles.includes(role))) {
+            return request;
         }
 
         // Otherwise, check if this request belongs to the logged-in user
-        if (request.employeeProfileId._id.toString() === user.id) {
+        // Ensure employeeProfileId exists before accessing _id
+        if (
+            request.employeeProfileId &&
+            request.employeeProfileId._id &&
+            request.employeeProfileId._id.toString() === user.id
+        ) {
             return request;
         }
 
         throw new ForbiddenException('Not allowed to view this request');
-        }
+    }
 
 
     async reviewChangeRequest(
@@ -460,7 +642,7 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
         action: ProfileChangeStatus,
         user: any,
         patch?: any
-        ) {
+    ) {
         const req = await this.changeReqModel
             .findOne({ requestId })
             .populate('employeeProfileId')
@@ -469,6 +651,8 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
         if (!req) throw new NotFoundException('Request not found');
 
         const employee = req.employeeProfileId;
+        if (!employee) throw new BadRequestException('Employee record not found for this request');
+
         const empRole = await this.empRoleModel
             .findOne({ employeeProfileId: employee._id })
             .lean();
@@ -503,10 +687,10 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
         await this.changeReqModel.updateOne({ requestId }, update);
 
         if (action === ProfileChangeStatus.APPROVED && patch) {
-        await this.empModel.findByIdAndUpdate(
-            req.employeeProfileId,
-            { ...patch, updatedAt: new Date() }
-        );
+            await this.empModel.findByIdAndUpdate(
+                req.employeeProfileId,
+                { ...patch, updatedAt: new Date() }
+            );
         }
 
         const reqUpdated = await this.changeReqModel.findOne({ requestId }).lean();
@@ -551,5 +735,9 @@ async getMyRoles(employeeId: string | Types.ObjectId): Promise<string[]> {
 
     }
 
+
+    async getUniquePermissions(): Promise<string[]> {
+        return this.empRoleModel.distinct('permissions');
+    }
 
 }

@@ -1,13 +1,13 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  Put,
-  Patch,
-  Req,
-  Query,
+    Controller,
+    Get,
+    Post,
+    Body,
+    Param,
+    Put,
+    Patch,
+    Req,
+    Query,
 } from '@nestjs/common';
 //import { CreateEmployeeDto } from './dto/create-employee.dto';
 
@@ -15,6 +15,7 @@ import { EmployeeProfileService } from './employee-profile.service';
 import { UpdateEmployeeAdminDto } from './dto/update-employee-admin.dto';
 import { UpdateEmployeeSelfImmediateDto } from './dto/update-self-immediate.dto';
 import { CreateEmployeeChangeRequestDto } from './dto/create-change-request.dto';
+import { CreateLegalChangeRequestDto } from './dto/create-legal-change-request.dto';
 // import { ReviewChangeRequestDto } from './dto/';
 import { ProfileChangeStatus } from './enums/employee-profile.enums';
 
@@ -34,7 +35,7 @@ import { EmployeeSystemRole } from './Models/employee-system-role.schema';
 @Controller('employee-profile')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EmployeeProfileController {
-    constructor(private readonly svc: EmployeeProfileService) {}
+    constructor(private readonly svc: EmployeeProfileService) { }
     //---------------------
     // '/employee-profile'
     //---------------------
@@ -49,9 +50,8 @@ export class EmployeeProfileController {
     @Roles(SystemRole.HR_MANAGER, SystemRole.HR_ADMIN, SystemRole.SYSTEM_ADMIN, SystemRole.DEPARTMENT_HEAD)
     getAll(@Req() req) {
         return this.svc.getAllEmployees(req.user);
-    } 
-    
-    
+    }
+
     //-------------------------------
     // '/employee-profile/candidate'
     //-------------------------------
@@ -60,25 +60,31 @@ export class EmployeeProfileController {
     @Get('me')
     @Roles() // Requires authentication but allows any authenticated user
     getMe(@Req() req) {
-    // req.cookies.employeeNumber is available if using cookie-parser
-    const employeeNumber = req.cookies.employeeNumber;
-    return this.svc.getMyProfile(employeeNumber, req.user);
+        // req.cookies.employeeNumber is available if using cookie-parser
+        const employeeNumber = req.cookies.employeeNumber;
+        return this.svc.getMyProfile(employeeNumber, req.user);
     }
 
     @Get('myrole')
     @Roles() // Empty @Roles() triggers JWT auth but allows any authenticated user
-  async getMyRoles(@Req() req) {
-    // req.user populated by JwtAuthGuard
+    async getMyRoles(@Req() req) {
+        // req.user populated by JwtAuthGuard
 
-    const employeeId = req.user.id;
-    console.log('JWT payload:', req.user);
+        const employeeId = req.user.id;
+        console.log('JWT payload:', req.user);
 
-    console.log('req.user._id:', req.user.id);
+        console.log('req.user._id:', req.user.id);
 
-    const roles = await this.svc.getMyRoles(employeeId);
-    return { roles }; // returns JSON like { roles: ['HR_MANAGER', 'SYSTEM_ADMIN'] }
-  }
-    
+        const roles = await this.svc.getMyRoles(employeeId);
+        return { roles }; // returns JSON like { roles: ['HR_MANAGER', 'SYSTEM_ADMIN'] }
+    }
+
+    // @Get(':id')
+    // @Roles()
+    // getEmpById(@Param('id') employeeId: string, @Req() req) {
+    //     return this.svc.getEmployeeById(employeeId, req.user);
+    // }
+
     @Post('candidate')
     @Roles(SystemRole.RECRUITER)
     createCandidate(@Body() dto: CreateCandidateDto) {
@@ -88,7 +94,7 @@ export class EmployeeProfileController {
     /**
      * REC-004: Update candidate status for pipeline tracking
      * Access: HR Manager, HR Employee, Recruiter
-     */
+    */
     @Patch('candidates/:id/status')
     @Roles(SystemRole.HR_MANAGER, SystemRole.HR_EMPLOYEE, SystemRole.RECRUITER)
     updateCandidateStatus(
@@ -129,13 +135,35 @@ export class EmployeeProfileController {
         return this.svc.getAllEmployeesForSelection(req.user);
     }
 
+    // Get all supervisors (department heads, HR managers) for supervisor selection
+    @Get('supervisors')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.HR_EMPLOYEE,
+        SystemRole.SYSTEM_ADMIN
+    )
+    getSupervisors(@Req() req) {
+        return this.svc.getSupervisors(req.user);
+    }
+
+    @Get('unique-permissions')
+    @Roles(
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.SYSTEM_ADMIN
+    )
+    getUniquePermissions() {
+        return this.svc.getUniquePermissions();
+    }
+
     //---------------------------------
     // '/employee-profile/my-employees'
     //---------------------------------
     @Get('my-employees')
     @Roles(SystemRole.DEPARTMENT_HEAD)
     getEmployeesInMyDepartment(@Req() req) {
-        console.log("alooooooooooooooo",req.user._id)
+        console.log("alooooooooooooooo", req.user._id)
         return this.svc.getEmployeesInDepartment(req.user.primaryDepartmentId, req.user);
     }
 
@@ -154,13 +182,14 @@ export class EmployeeProfileController {
         return this.svc.listChangeRequests(req.user);
     }
 
- 
+
     @Get('change-request/:requestId')
+    @Roles()
     async getChangeRequestById(
-    @Param('requestId') requestId: string,
-    @Req() req
+        @Param('requestId') requestId: string,
+        @Req() req
     ) {
-    return this.svc.getChangeRequestById(requestId, req.user);
+        return this.svc.getChangeRequestById(requestId, req.user);
     }
 
     //HR reviews a change request
@@ -206,12 +235,27 @@ export class EmployeeProfileController {
         SystemRole.HR_EMPLOYEE
     )
     createChangeRequest(
-        @Param('employeeNumber') employeeNumber: string, 
+        @Param('employeeNumber') employeeNumber: string,
         @Body() dto: CreateEmployeeChangeRequestDto,
         @Req() req
     ) {
         return this.svc.createChangeRequest(employeeNumber, dto, req.user);
     }
+
+    // Legal name and marital status change request
+    @Post(':employeeNumber/my-profile/legal-change-request')
+    @Roles(
+        SystemRole.DEPARTMENT_EMPLOYEE,
+        SystemRole.HR_EMPLOYEE
+    )
+    createLegalChangeRequest(
+        @Param('employeeNumber') employeeNumber: string,
+        @Body() dto: CreateLegalChangeRequestDto,
+        @Req() req
+    ) {
+        return this.svc.createLegalChangeRequest(employeeNumber, dto, req.user);
+    }
+
 
     //------------------------
     // '/employee-profile/:id'
@@ -228,7 +272,7 @@ export class EmployeeProfileController {
     )
     getOne(@Param('id') id: string, @Req() req) {
         return this.svc.getEmployee(id, req.user);
-    } 
+    }
 
     //Admin/HR update lel employee
     @Put(':id/admin')
@@ -241,5 +285,5 @@ export class EmployeeProfileController {
         return this.svc.updateEmployeeAdmin(id, dto, req.user);
     }
 
-    
+
 }
