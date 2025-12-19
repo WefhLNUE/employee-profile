@@ -4,6 +4,8 @@ import { EmployeeProfileController } from './employee-profile.controller';
 import { EmployeeProfileService } from './employee-profile.service';
 
 import { Candidate, CandidateSchema } from './Models/candidate.schema';
+import { ApplicationStatusHistory, ApplicationStatusHistorySchema } from 'src/recruitment/Models/application-history.schema';
+import { Application, ApplicationSchema } from 'src/recruitment/Models/application.schema';
 import { EmployeeProfile, EmployeeProfileSchema } from './Models/employee-profile.schema';
 import { EmployeeSystemRole, EmployeeSystemRoleSchema } from './Models/employee-system-role.schema';
 import {
@@ -32,6 +34,8 @@ import { Position, PositionSchema } from 'src/organization-structure/Models/posi
       },
       { name: 'Counter', schema: CounterSchema },
       { name: EmployeeQualification.name, schema: EmployeeQualificationSchema },
+      { name: ApplicationStatusHistory.name, schema: ApplicationStatusHistorySchema },
+      { name: Application.name, schema: ApplicationSchema },
     ]),
   ],
   controllers: [EmployeeProfileController],

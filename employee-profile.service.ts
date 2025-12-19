@@ -37,6 +37,8 @@ import { EmployeeSystemRole } from './Models/employee-system-role.schema';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { Department } from 'src/organization-structure/Models/department.schema';
 import { Position } from 'src/organization-structure/Models/position.schema';
+import { Application } from 'src/recruitment/Models/application.schema';
+import { ApplicationStatusHistory } from 'src/recruitment/Models/application-history.schema';
 
 
 @Injectable()
@@ -62,7 +64,13 @@ export class EmployeeProfileService {
 
         @InjectModel(Department.name)
         private departmentModel: Model<Department>,
-    ) { }
+
+        @InjectModel(Application.name)
+        private applicationModel: Model<Application>,
+
+        @InjectModel(ApplicationStatusHistory.name)
+        private applicationHistoryModel: Model<ApplicationStatusHistory>,
+    ) {}
 
     private async getNextEmployeeNumber(): Promise<string> {
         const counter = await this.counterModel.findOneAndUpdate(
@@ -106,7 +114,9 @@ export class EmployeeProfileService {
     async updateCandidateStatus(
         candidateId: string,
         status: CandidateStatus,
-        notes?: string
+        notes?: string,
+        changedBy?: string,
+        applicationId?: string // Optional: if provided, only update this specific application
     ) {
         const candidate = await this.candidateModel.findById(candidateId);
 
@@ -120,8 +130,47 @@ export class EmployeeProfileService {
         candidate.status = status;
         await candidate.save();
 
-        // TODO: Log status change in history if needed
-        // You could create a history log here similar to application history
+        // Map CandidateStatus to ApplicationStatus for updating applications
+        const candidateToApplicationStatusMap: Partial<Record<CandidateStatus, string>> = {
+            [CandidateStatus.APPLIED]: 'submitted',
+            [CandidateStatus.SCREENING]: 'in_process',
+            [CandidateStatus.INTERVIEW]: 'in_process',
+            [CandidateStatus.OFFER_SENT]: 'offer',
+            [CandidateStatus.OFFER_ACCEPTED]: 'offer',
+            [CandidateStatus.HIRED]: 'hired',
+            [CandidateStatus.REJECTED]: 'rejected',
+            [CandidateStatus.WITHDRAWN]: 'rejected',
+        };
+
+        const applicationStatus = candidateToApplicationStatusMap[status];
+
+        // If a specific applicationId is provided, only update that application
+        // Otherwise, only create a history record for the candidate status change (not all applications)
+        if (applicationId) {
+            const application = await this.applicationModel.findOne({
+                _id: new Types.ObjectId(applicationId),
+                candidateId: new Types.ObjectId(candidateId)
+            });
+
+            if (application) {
+                // Update the application's status if there's a mapping
+                if (applicationStatus) {
+                    application.status = applicationStatus as any;
+                    await application.save();
+                }
+
+                // Create history record for this specific application
+                const historyRecord = new this.applicationHistoryModel({
+                    applicationId: application._id,
+                    oldStatus: application.status,
+                    newStatus: applicationStatus || status,
+                    changedBy: changedBy ? new Types.ObjectId(changedBy) : undefined,
+                    changedAt: new Date(),
+                    notes: notes || `Candidate status updated from ${oldStatus} to ${status}`,
+                });
+                await historyRecord.save();
+            }
+        }
 
         return {
             candidate,

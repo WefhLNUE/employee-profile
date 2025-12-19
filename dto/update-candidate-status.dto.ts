@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsMongoId } from 'class-validator';
 import { CandidateStatus } from '../enums/employee-profile.enums';
 
 export class UpdateCandidateStatusDto {
@@ -8,4 +8,8 @@ export class UpdateCandidateStatusDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsMongoId()
+  @IsOptional()
+  applicationId?: string;
 }
