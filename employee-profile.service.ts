@@ -44,7 +44,6 @@ import { AppraisalRecord } from 'src/performance/Models/appraisal-record.schema'
 import { AppraisalTemplate } from 'src/performance/Models/appraisal-template.schema';
 import { AppraisalRecordStatus } from 'src/performance/enums/performance.enums';
 import { PayrollConfigurationService } from 'src/payroll-configuration/payroll-configuration.service';
-import { ConfigStatus } from 'src/payroll-configuration/enums/payroll-configuration-enums';
 import { NotificationService } from 'src/time-management/services/notification.service';
 
 
@@ -671,7 +670,6 @@ export class EmployeeProfileService {
                         grade: gradeName,
                         baseSalary: 6000,
                         grossSalary: 6000,
-                        status: ConfigStatus.DRAFT
                     });
                 } catch (err) {
                     // Fallback/log if creation fails (e.g. valid checks)
