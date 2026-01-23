@@ -19,6 +19,8 @@ import { RolesGuard } from 'src/auth/guards/roles.guard';
 import { AuthModule } from 'src/auth/auth.module';
 import { Department, DepartmentSchema } from 'src/organization-structure/Models/department.schema';
 import { Position, PositionSchema } from 'src/organization-structure/Models/position.schema';
+import { PositionAssignment, PositionAssignmentSchema } from 'src/organization-structure/Models/position-assignment.schema';
+import { DepartmentAssignment, DepartmentAssignmentSchema } from 'src/organization-structure/Models/department-assignment.schema';
 import { AppraisalRecord, AppraisalRecordSchema } from 'src/performance/Models/appraisal-record.schema';
 import { AppraisalTemplate, AppraisalTemplateSchema } from 'src/performance/Models/appraisal-template.schema';
 import { TimeManagementModule } from 'src/time-management/time-management.module';
@@ -34,6 +36,8 @@ import { TimeManagementModule } from 'src/time-management/time-management.module
       { name: EmployeeSystemRole.name, schema: EmployeeSystemRoleSchema },
       { name: Department.name, schema: DepartmentSchema },
       { name: Position.name, schema: PositionSchema },
+      { name: PositionAssignment.name, schema: PositionAssignmentSchema },
+      { name: DepartmentAssignment.name, schema: DepartmentAssignmentSchema },
       {
         name: EmployeeProfileChangeRequest.name,
         schema: EmployeeProfileChangeRequestSchema,

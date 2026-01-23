@@ -13,6 +13,12 @@ export class UpdateEmployeeSelfImmediateDto {
   @IsOptional() @IsString()
   profilePictureUrl?: string;
 
+  @IsOptional() @IsString()
+  personalEmail?: string;
+
+  @IsOptional() @IsString()
+  mobilePhone?: string;
+
   @IsOptional()
   @IsObject()
   address?: {

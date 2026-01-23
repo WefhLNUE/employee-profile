@@ -80,6 +80,10 @@ export class EmployeeProfile extends UserProfileBase {
   @Prop({ type: Types.ObjectId, ref: 'Position' })
   supervisorPositionId?: Types.ObjectId;
 
+  // Added to resolve hierarchy ambiguity (Person-to-Person reporting)
+  @Prop({ type: Types.ObjectId, ref: 'EmployeeProfile' })
+  supervisorId?: Types.ObjectId;
+
   @Prop({ type: Types.ObjectId, ref: payGrade.name })
   payGradeId?: Types.ObjectId;
 

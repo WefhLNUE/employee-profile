@@ -17,7 +17,7 @@ import {
   WorkType,
   EmployeeStatus,
   SystemRole
-} from  '../enums/employee-profile.enums';
+} from '../enums/employee-profile.enums';
 
 
 export class RegisterEmployeeDto {
@@ -133,6 +133,10 @@ export class RegisterEmployeeDto {
   @IsMongoId()
   @IsOptional()
   supervisorPositionId?: string;
+
+  @IsMongoId()
+  @IsOptional()
+  supervisorId?: string;
 
   @IsMongoId()
   @IsOptional()

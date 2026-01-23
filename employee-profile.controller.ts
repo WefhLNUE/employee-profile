@@ -133,7 +133,8 @@ export class EmployeeProfileController {
         SystemRole.HR_ADMIN,
         SystemRole.HR_EMPLOYEE,
         SystemRole.RECRUITER,
-        SystemRole.SYSTEM_ADMIN
+        SystemRole.SYSTEM_ADMIN,
+        SystemRole.DEPARTMENT_HEAD
     )
     getAllForSelection(@Req() req) {
         return this.svc.getAllEmployeesForSelection(req.user);
@@ -167,7 +168,12 @@ export class EmployeeProfileController {
     // '/employee-profile/my-employees'
     //---------------------------------
     @Get('my-employees')
-    @Roles(SystemRole.DEPARTMENT_HEAD)
+    @Roles(
+        SystemRole.DEPARTMENT_HEAD,
+        SystemRole.HR_MANAGER,
+        SystemRole.HR_ADMIN,
+        SystemRole.SYSTEM_ADMIN
+    )
     async getEmployeesInMyDepartment(@Req() req) {
         // Fetch fresh profile to get current department, in case token is stale
         const profile = await this.svc.getEmployeeById(req.user.id, req.user);
@@ -240,7 +246,15 @@ export class EmployeeProfileController {
     @Post(':employeeNumber/my-profile/change-request')
     @Roles(
         SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.HR_EMPLOYEE
+        SystemRole.HR_EMPLOYEE,
+        SystemRole.DEPARTMENT_HEAD,
+        SystemRole.RECRUITER,
+        SystemRole.SYSTEM_ADMIN,
+        SystemRole.PAYROLL_SPECIALIST,
+        SystemRole.PAYROLL_MANAGER,
+        SystemRole.LEGAL_POLICY_ADMIN,
+        SystemRole.FINANCE_STAFF,
+        SystemRole.JOB_CANDIDATE
     )
     createChangeRequest(
         @Param('employeeNumber') employeeNumber: string,
@@ -254,7 +268,15 @@ export class EmployeeProfileController {
     @Post(':employeeNumber/my-profile/legal-change-request')
     @Roles(
         SystemRole.DEPARTMENT_EMPLOYEE,
-        SystemRole.HR_EMPLOYEE
+        SystemRole.HR_EMPLOYEE,
+        SystemRole.DEPARTMENT_HEAD,
+        SystemRole.RECRUITER,
+        SystemRole.SYSTEM_ADMIN,
+        SystemRole.PAYROLL_SPECIALIST,
+        SystemRole.PAYROLL_MANAGER,
+        SystemRole.LEGAL_POLICY_ADMIN,
+        SystemRole.FINANCE_STAFF,
+        SystemRole.JOB_CANDIDATE
     )
     createLegalChangeRequest(
         @Param('employeeNumber') employeeNumber: string,

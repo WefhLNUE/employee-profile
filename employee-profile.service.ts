@@ -15,6 +15,16 @@ import {
 } from './Models/employee-profile.schema';
 
 import {
+    DepartmentAssignment,
+    DepartmentAssignmentDocument
+} from 'src/organization-structure/Models/department-assignment.schema';
+
+import {
+    PositionAssignment,
+    PositionAssignmentDocument
+} from 'src/organization-structure/Models/position-assignment.schema';
+
+import {
     EmployeeProfileChangeRequest,
 } from './Models/ep-change-request.schema';
 
@@ -71,6 +81,12 @@ export class EmployeeProfileService {
 
         @InjectModel(Department.name)
         private departmentModel: Model<Department>,
+
+        @InjectModel(PositionAssignment.name)
+        private positionAssignmentModel: Model<PositionAssignmentDocument>,
+
+        @InjectModel(DepartmentAssignment.name)
+        private departmentAssignmentModel: Model<DepartmentAssignment>,
 
         @InjectModel(Application.name)
         private applicationModel: Model<Application>,
@@ -237,6 +253,8 @@ export class EmployeeProfileService {
         return this.empModel
             .find({ status: 'ACTIVE' })
             .select('_id firstName lastName employeeNumber primaryDepartmentId primaryPositionId')
+            .populate('primaryPositionId', 'title code departmentId')
+            .populate('primaryDepartmentId', 'name code')
             .lean();
     }
 
@@ -382,6 +400,9 @@ export class EmployeeProfileService {
         const emp = await this.empModel.findById(id)
             .populate('primaryPositionId')
             .populate('primaryDepartmentId')
+            .populate('payGradeId')
+            .populate('supervisorPositionId')
+            .populate('supervisorId')
             .lean() as any;
         if (!emp) throw new NotFoundException('Employee not found');
 
@@ -686,8 +707,114 @@ export class EmployeeProfileService {
             }
         }
 
+        // Fetch current state BEFORE update to detect changes
+        const oldEmployee = await this.empModel.findById(id);
+
         // Update profile
         const updatedProfile = await this.employeeModel.findByIdAndUpdate(id, restData, { new: true });
+
+        // HISTORY TRACKING LOGIC (Position & Department)
+        try {
+            if (oldEmployee && updatedProfile) {
+                // --- Position Change Tracking ---
+                const oldPosId = oldEmployee.primaryPositionId ? oldEmployee.primaryPositionId.toString() : null;
+                const newPosId = updatedProfile.primaryPositionId ? updatedProfile.primaryPositionId.toString() : null;
+
+                if (oldPosId !== newPosId) {
+                    // 1. Archive Old Position
+                    if (oldPosId) {
+                        const closed = await this.positionAssignmentModel.updateMany(
+                            {
+                                employeeProfileId: oldEmployee._id,
+                                positionId: oldEmployee.primaryPositionId,
+                                endDate: { $exists: false }
+                            },
+                            { $set: { endDate: new Date(), reason: 'Position Change (Closed)' } }
+                        );
+
+                        // If no active record found, create one and close it immediately (Audit gap filler)
+                        if (closed.modifiedCount === 0) {
+                            try {
+                                await this.positionAssignmentModel.create({
+                                    employeeProfileId: oldEmployee._id,
+                                    positionId: oldEmployee.primaryPositionId,
+                                    departmentId: oldEmployee.primaryDepartmentId,
+                                    startDate: oldEmployee.contractStartDate || oldEmployee.dateOfHire || new Date(),
+                                    endDate: new Date(),
+                                    reason: 'Position Change (Archived)',
+                                    notes: `Position changed to ${updatedProfile.primaryPositionId || 'None'}`
+                                });
+                            } catch (innerErr) {
+                                console.warn('Failed to create archive position log', innerErr);
+                            }
+                        }
+                    }
+
+                    // 2. Create New Active Position
+                    if (newPosId) {
+                        await this.positionAssignmentModel.create({
+                            employeeProfileId: oldEmployee._id,
+                            positionId: updatedProfile.primaryPositionId,
+                            departmentId: updatedProfile.primaryDepartmentId, // Can be null if optional
+                            startDate: new Date(),
+                            reason: 'Position Change (New)',
+                            notes: `Position changed from ${oldPosId || 'None'}`
+                        });
+                    }
+                }
+
+                // --- Department Change Tracking ---
+                const oldDeptId = oldEmployee.primaryDepartmentId ? oldEmployee.primaryDepartmentId.toString() : null;
+                const newDeptId = updatedProfile.primaryDepartmentId ? updatedProfile.primaryDepartmentId.toString() : null;
+
+                if (oldDeptId !== newDeptId) {
+                    // 1. Archive Old Department
+                    if (oldDeptId) {
+                        const closed = await this.departmentAssignmentModel.updateMany(
+                            {
+                                employeeProfileId: oldEmployee._id,
+                                departmentId: oldEmployee.primaryDepartmentId,
+                                endDate: { $exists: false }
+                            },
+                            { $set: { endDate: new Date(), reason: 'Department Change (Closed)' } }
+                        );
+
+                        if (closed.modifiedCount === 0) {
+                            try {
+                                await this.departmentAssignmentModel.create({
+                                    employeeProfileId: oldEmployee._id,
+                                    departmentId: oldEmployee.primaryDepartmentId,
+                                    positionId: oldEmployee.primaryPositionId,
+                                    startDate: oldEmployee.contractStartDate || oldEmployee.dateOfHire || new Date(),
+                                    endDate: new Date(),
+                                    reason: 'Department Change (Archived)',
+                                    notes: `Department changed to ${updatedProfile.primaryDepartmentId || 'None'}`
+                                });
+                            } catch (innerErr) {
+                                console.warn('Failed to create archive department log', innerErr);
+                            }
+                        }
+                    }
+
+                    // 2. Create New Active Department
+                    if (newDeptId) {
+                        await this.departmentAssignmentModel.create({
+                            employeeProfileId: oldEmployee._id,
+                            departmentId: updatedProfile.primaryDepartmentId,
+                            positionId: updatedProfile.primaryPositionId,
+                            startDate: new Date(),
+                            reason: 'Department Change (New)',
+                            notes: `Department changed from ${oldDeptId || 'None'}`
+                        });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Failed to track position/department history:", error);
+            // Valid to fail silently as it shouldn't block the main update
+        }
+
+        return updatedProfile;
 
         // Update permissions/roles if provided
         if (permissions !== undefined || roles !== undefined) {
@@ -965,6 +1092,17 @@ export class EmployeeProfileService {
                 req.employeeProfileId,
                 { ...patch, updatedAt: new Date() }
             );
+        }
+
+        // NOTIFICATION LOGIC
+        try {
+            const message = `Your change request (${requestId}) has been ${action}.`;
+            // Notify the requesting employee
+            const recipientId = req.employeeProfileId._id || req.employeeProfileId;
+            await this.notificationService.createNotification(recipientId, message);
+        } catch (error) {
+            console.error("Failed to send review notification:", error);
+            // Non-blocking
         }
 
         const reqUpdated = await this.changeReqModel.findOne({ requestId }).populate('employeeProfileId').lean();
