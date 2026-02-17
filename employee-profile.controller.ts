@@ -211,7 +211,14 @@ export class EmployeeProfileController {
         SystemRole.HR_MANAGER,
         SystemRole.HR_ADMIN,
         SystemRole.HR_EMPLOYEE,
-        SystemRole.DEPARTMENT_EMPLOYEE
+        SystemRole.DEPARTMENT_EMPLOYEE,
+        SystemRole.DEPARTMENT_HEAD,
+        SystemRole.RECRUITER,
+        SystemRole.SYSTEM_ADMIN,
+        SystemRole.PAYROLL_SPECIALIST,
+        SystemRole.PAYROLL_MANAGER,
+        SystemRole.LEGAL_POLICY_ADMIN,
+        SystemRole.FINANCE_STAFF
     )
     reviewCR(
         @Param('requestId') requestId: string,
